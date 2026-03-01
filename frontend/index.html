@@ -6,249 +6,289 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🚗 Vehicle Telemetry System</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 
 <body>
-    <div class="container">
+    <div class="app">
         <!-- Header -->
         <header class="header">
-            <div class="header-content">
-                <h1><i class="fas fa-car"></i> Intelligent Vehicle Telemetry System</h1>
-                <p>Real-time monitoring & AI-based fault detection</p>
+            <div class="logo">
+                <i class="fas fa-car-side"></i>
+                <h1>Fleet<span>Watch</span></h1>
             </div>
-            <div class="header-status">
-                <span class="status-indicator" id="backendStatus"></span>
-                <span id="statusText">Checking backend...</span>
+            <div class="connection-status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Connecting...</span>
             </div>
         </header>
 
-        <!-- Main Dashboard -->
-        <div class="dashboard">
-            <!-- Left Panel - Vehicle Animation -->
-            <div class="vehicle-panel">
-                <div class="vehicle-card">
-                    <h3><i class="fas fa-truck"></i> Current Vehicle</h3>
-
-                    <!-- Vehicle Selector -->
-                    <div class="vehicle-selector">
-                        <label for="vehicleSelect">Select Vehicle:</label>
-                        <select id="vehicleSelect" class="vehicle-dropdown">
-                            <option value="V101">🚗 V101 - Tesla Model 3</option>
-                            <option value="V102">🚙 V102 - Ford F-150</option>
-                            <option value="V103">🚐 V103 - Toyota Camry</option>
-                            <option value="V104">🏎️ V104 - BMW X5</option>
-                            <option value="V105">🚛 V105 - Mercedes Sprinter</option>
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Vehicle Panel -->
+            <div class="card vehicle-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-tachometer-alt"></i> Vehicle Telemetry</h2>
+                    <div class="vehicle-selector-wrapper">
+                        <select id="vehicleSelect" class="vehicle-select">
+                            <option value="V101">🚗 Tesla Model 3 (V101)</option>
+                            <option value="V102">🚙 Ford F-150 (V102)</option>
+                            <option value="V103">🚐 Toyota Camry (V103)</option>
+                            <option value="V104">🏎️ BMW X5 (V104)</option>
+                            <option value="V105">🚛 Mercedes Sprinter (V105)</option>
                         </select>
+                        <i class="fas fa-chevron-down"></i>
                     </div>
+                </div>
 
-                    <!-- Vehicle Animation -->
-                    <div class="vehicle-animation" id="vehicleAnimation">
-                        <div class="vehicle-status-led" id="vehicleStatusLED">
-                            <div class="led led-green" id="ledGreen"></div>
-                            <div class="led led-yellow" id="ledYellow"></div>
-                            <div class="led led-red" id="ledRed"></div>
-                        </div>
-                        <div class="car-animation" id="carAnimation">
+                <!-- Vehicle Animation -->
+                <div class="animation-container">
+                    <div class="road">
+                        <div class="car-model" id="carModel">
+                            <div class="car-top"></div>
                             <div class="car-body">
-                                <div class="car-roof"></div>
-                                <div class="car-window"></div>
-                                <div class="car-wheel front-wheel"></div>
-                                <div class="car-wheel rear-wheel"></div>
+                                <div class="window"></div>
+                                <div class="door-line"></div>
                             </div>
+                            <div class="wheel front"></div>
+                            <div class="wheel rear"></div>
                         </div>
-                        <div class="vehicle-status-text" id="vehicleStatus">
-                            <span class="status-badge normal">NORMAL</span>
+                        <div class="road-lines" id="roadLines"></div>
+                    </div>
+
+                    <!-- Status LED -->
+                    <div class="status-led-container">
+                        <div class="led-wrapper">
+                            <div class="led led-green" id="ledGreen"></div>
+                            <span>Normal</span>
+                        </div>
+                        <div class="led-wrapper">
+                            <div class="led led-yellow" id="ledYellow"></div>
+                            <span>Warning</span>
+                        </div>
+                        <div class="led-wrapper">
+                            <div class="led led-red" id="ledRed"></div>
+                            <span>Critical</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Gauges -->
+                <div class="gauges-grid">
+                    <div class="gauge">
+                        <div class="gauge-header">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Speed</span>
+                        </div>
+                        <div class="gauge-value" id="gaugeSpeed">0</div>
+                        <div class="gauge-unit">km/h</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressSpeed" style="width: 0%"></div>
                         </div>
                     </div>
 
-                    <!-- Live Parameters -->
-                    <div class="live-parameters">
-                        <h4><i class="fas fa-chart-line"></i> Live Parameters</h4>
-                        <div class="parameter-grid">
-                            <div class="parameter-item">
-                                <span class="param-label">Speed:</span>
-                                <span class="param-value" id="liveSpeed">0 km/h</span>
-                                <div class="param-bar">
-                                    <div class="param-fill" id="speedBar" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div class="parameter-item">
-                                <span class="param-label">Engine Temp:</span>
-                                <span class="param-value" id="liveTemp">0°C</span>
-                                <div class="param-bar">
-                                    <div class="param-fill" id="tempBar" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div class="parameter-item">
-                                <span class="param-label">RPM:</span>
-                                <span class="param-value" id="liveRPM">0</span>
-                                <div class="param-bar">
-                                    <div class="param-fill" id="rpmBar" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div class="parameter-item">
-                                <span class="param-label">Battery:</span>
-                                <span class="param-value" id="liveBattery">0V</span>
-                                <div class="param-bar">
-                                    <div class="param-fill" id="batteryBar" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div class="parameter-item">
-                                <span class="param-label">Fuel:</span>
-                                <span class="param-value" id="liveFuel">0%</span>
-                                <div class="param-bar">
-                                    <div class="param-fill" id="fuelBar" style="width: 0%"></div>
-                                </div>
-                            </div>
+                    <div class="gauge">
+                        <div class="gauge-header">
+                            <i class="fas fa-temperature-high"></i>
+                            <span>Engine Temp</span>
+                        </div>
+                        <div class="gauge-value" id="gaugeTemp">0</div>
+                        <div class="gauge-unit">°C</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressTemp" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="gauge">
+                        <div class="gauge-header">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>RPM</span>
+                        </div>
+                        <div class="gauge-value" id="gaugeRPM">0</div>
+                        <div class="gauge-unit">x1000</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressRPM" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="gauge">
+                        <div class="gauge-header">
+                            <i class="fas fa-car-battery"></i>
+                            <span>Battery</span>
+                        </div>
+                        <div class="gauge-value" id="gaugeBattery">0</div>
+                        <div class="gauge-unit">V</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressBattery" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="gauge">
+                        <div class="gauge-header">
+                            <i class="fas fa-gas-pump"></i>
+                            <span>Fuel</span>
+                        </div>
+                        <div class="gauge-value" id="gaugeFuel">0</div>
+                        <div class="gauge-unit">%</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFuel" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Panel - Controls & Alerts -->
-            <div class="controls-panel">
-                <!-- Control Tabs -->
-                <div class="tabs">
-                    <button class="tab-btn active" onclick="showTab('manual')">
-                        <i class="fas fa-sliders-h"></i> Manual Control
+            <!-- Controls Panel -->
+            <div class="card controls-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-sliders-h"></i> Control Panel</h2>
+                    <div class="sound-toggle">
+                        <i class="fas fa-volume-up"></i>
+                        <label class="switch">
+                            <input type="checkbox" id="soundToggle" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Quick Fault Buttons -->
+                <div class="quick-faults">
+                    <button class="fault-btn overheat" onclick="triggerFault('overheat')">
+                        <i class="fas fa-fire"></i>
+                        <span>Overheat</span>
                     </button>
-                    <button class="tab-btn" onclick="showTab('auto')">
-                        <i class="fas fa-robot"></i> Auto Simulator
+                    <button class="fault-btn overspeed" onclick="triggerFault('overspeed')">
+                        <i class="fas fa-gauge-high"></i>
+                        <span>Overspeed</span>
                     </button>
-                    <button class="tab-btn" onclick="showTab('alerts')">
-                        <i class="fas fa-exclamation-triangle"></i> Alert History
+                    <button class="fault-btn battery" onclick="triggerFault('battery')">
+                        <i class="fas fa-bolt"></i>
+                        <span>Battery</span>
+                    </button>
+                    <button class="fault-btn rpm" onclick="triggerFault('rpm')">
+                        <i class="fas fa-cogs"></i>
+                        <span>High RPM</span>
+                    </button>
+                    <button class="fault-btn fuel" onclick="triggerFault('fuel')">
+                        <i class="fas fa-gas-pump"></i>
+                        <span>Low Fuel</span>
                     </button>
                 </div>
 
-                <!-- Manual Control Tab -->
-                <div id="manual-tab" class="tab-pane active">
-                    <div class="control-panel">
-                        <h3><i class="fas fa-sliders-h"></i> Manual Telemetry Control</h3>
+                <!-- Manual Controls -->
+                <div class="manual-controls">
+                    <h3>Manual Adjustment</h3>
 
-                        <div class="slider-group">
-                            <label>Speed: <span id="speedVal">85</span> km/h</label>
-                            <input type="range" id="speed" min="0" max="200" value="85" oninput="updateLiveParams()">
+                    <div class="control-row">
+                        <div class="control-label">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Speed</span>
                         </div>
-
-                        <div class="slider-group">
-                            <label>Engine Temp: <span id="tempVal">92</span> °C</label>
-                            <input type="range" id="engineTemp" min="0" max="150" value="92"
-                                oninput="updateLiveParams()">
+                        <div class="control-input">
+                            <input type="range" id="speedSlider" class="smooth-slider" min="0" max="200" value="65"
+                                step="1">
+                            <span class="slider-value" id="speedValue">65 km/h</span>
                         </div>
-
-                        <div class="slider-group">
-                            <label>RPM: <span id="rpmVal">2800</span></label>
-                            <input type="range" id="rpm" min="0" max="10000" value="2800" oninput="updateLiveParams()">
-                        </div>
-
-                        <div class="slider-group">
-                            <label>Battery: <span id="batteryVal">12.4</span> V</label>
-                            <input type="range" id="battery" min="0" max="24" value="12.4" step="0.1"
-                                oninput="updateLiveParams()">
-                        </div>
-
-                        <div class="slider-group">
-                            <label>Fuel: <span id="fuelVal">45</span> %</label>
-                            <input type="range" id="fuel" min="0" max="100" value="45" oninput="updateLiveParams()">
-                        </div>
-
-                        <button class="btn-primary" onclick="sendTelemetry()">
-                            <i class="fas fa-paper-plane"></i> SEND DATA
-                        </button>
-
-                        <button class="btn-secondary" onclick="resetToNormal()">
-                            <i class="fas fa-undo"></i> Reset to Normal
-                        </button>
                     </div>
-                </div>
 
-                <!-- Auto Simulator Tab -->
-                <div id="auto-tab" class="tab-pane">
-                    <div class="simulator-panel">
-                        <h3><i class="fas fa-robot"></i> Auto Simulator</h3>
-
-                        <div class="simulator-controls">
-                            <label>Anomaly Probability:</label>
-                            <input type="range" id="simProb" min="0" max="1" step="0.05" value="0.2"
-                                oninput="document.getElementById('probVal').textContent = (this.value * 100) + '%'">
-                            <span id="probVal">20%</span>
+                    <div class="control-row">
+                        <div class="control-label">
+                            <i class="fas fa-temperature-high"></i>
+                            <span>Engine Temp</span>
                         </div>
-
-                        <div class="fault-buttons">
-                            <button class="fault-btn" onclick="triggerFault('overheat')">
-                                🔥 Engine Overheat
-                            </button>
-                            <button class="fault-btn" onclick="triggerFault('overspeed')">
-                                ⚡ Overspeed
-                            </button>
-                            <button class="fault-btn" onclick="triggerFault('battery')">
-                                🔋 Battery Failure
-                            </button>
-                            <button class="fault-btn" onclick="triggerFault('rpm')">
-                                ⚙️ High RPM
-                            </button>
-                            <button class="fault-btn" onclick="triggerFault('fuel')">
-                                ⛽ Low Fuel
-                            </button>
+                        <div class="control-input">
+                            <input type="range" id="tempSlider" class="smooth-slider" min="0" max="150" value="85"
+                                step="0.5">
+                            <span class="slider-value" id="tempValue">85 °C</span>
                         </div>
-
-                        <button class="btn-primary" onclick="startAutoSimulator()">
-                            <i class="fas fa-play"></i> START SIMULATION
-                        </button>
-                        <button class="btn-secondary" onclick="stopAutoSimulator()">
-                            <i class="fas fa-stop"></i> STOP
-                        </button>
                     </div>
-                </div>
 
-                <!-- Alert History Tab -->
-                <div id="alerts-tab" class="tab-pane">
-                    <div class="alerts-panel">
-                        <h3><i class="fas fa-history"></i> Alert History</h3>
-
-                        <div class="alert-filters">
-                            <select id="alertFilter" onchange="filterAlerts()">
-                                <option value="all">All Alerts</option>
-                                <option value="High">High Severity Only</option>
-                                <option value="Medium">Medium Severity Only</option>
-                                <option value="Low">Low Severity Only</option>
-                            </select>
-                            <button onclick="clearAlerts()" class="btn-small">
-                                <i class="fas fa-trash"></i> Clear
-                            </button>
+                    <div class="control-row">
+                        <div class="control-label">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>RPM</span>
                         </div>
+                        <div class="control-input">
+                            <input type="range" id="rpmSlider" class="smooth-slider" min="0" max="8000" value="2500"
+                                step="50">
+                            <span class="slider-value" id="rpmValue">2500</span>
+                        </div>
+                    </div>
 
-                        <div class="alert-list" id="alertList">
-                            <!-- Alerts will appear here -->
+                    <div class="control-row">
+                        <div class="control-label">
+                            <i class="fas fa-car-battery"></i>
+                            <span>Battery</span>
+                        </div>
+                        <div class="control-input">
+                            <input type="range" id="batterySlider" class="smooth-slider" min="8" max="15" value="12.6"
+                                step="0.1">
+                            <span class="slider-value" id="batteryValue">12.6 V</span>
+                        </div>
+                    </div>
+
+                    <div class="control-row">
+                        <div class="control-label">
+                            <i class="fas fa-gas-pump"></i>
+                            <span>Fuel</span>
+                        </div>
+                        <div class="control-input">
+                            <input type="range" id="fuelSlider" class="smooth-slider" min="0" max="100" value="75"
+                                step="1">
+                            <span class="slider-value" id="fuelValue">75 %</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Sound Control Toggle -->
-                <div class="sound-control">
-                    <label class="sound-toggle">
-                        <input type="checkbox" id="soundToggle" checked onchange="toggleSound()">
-                        <span class="toggle-label"><i class="fas fa-volume-up"></i> Sound Alerts</span>
-                    </label>
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button class="btn primary" onclick="sendTelemetry()">
+                        <i class="fas fa-paper-plane"></i>
+                        Send Data
+                    </button>
+                    <button class="btn secondary" onclick="resetToNormal()">
+                        <i class="fas fa-undo-alt"></i>
+                        Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- Alerts Panel -->
+            <div class="card alerts-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-exclamation-triangle"></i> Alert History</h2>
+                    <button class="btn-icon" onclick="clearAlerts()">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
 
-                <!-- Current Alert Banner (Floating) -->
-                <div class="alert-banner" id="alertBanner" style="display: none;">
-                    <div class="alert-icon">
-                        <i class="fas fa-exclamation-triangle"></i>
+                <div class="alert-filters">
+                    <button class="filter-btn active" data-filter="all" onclick="filterAlerts('all')">All</button>
+                    <button class="filter-btn" data-filter="High" onclick="filterAlerts('High')">High</button>
+                    <button class="filter-btn" data-filter="Medium" onclick="filterAlerts('Medium')">Medium</button>
+                    <button class="filter-btn" data-filter="Low" onclick="filterAlerts('Low')">Low</button>
+                </div>
+
+                <div class="alert-list" id="alertList">
+                    <div class="alert-placeholder">
+                        <i class="fas fa-bell"></i>
+                        <p>No alerts yet</p>
                     </div>
-                    <div class="alert-message" id="alertMessage">
-                        ⚠️ HIGH SEVERITY ALERT: Engine Overheat
-                    </div>
-                    <button class="alert-close" onclick="dismissAlert()">✕</button>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- No audio elements needed - all sounds generated by JavaScript! -->
+        <!-- Alert Banner -->
+        <div class="alert-banner" id="alertBanner">
+            <div class="banner-content">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="bannerMessage">Critical fault detected</span>
+            </div>
+            <button class="banner-close" onclick="dismissBanner()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>

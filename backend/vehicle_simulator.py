@@ -4,121 +4,186 @@ import random
 import numpy as np
 from datetime import datetime
 import threading
-import json
-from colorama import init, Fore, Style
 import os
+import sys
 
-# Initialize colorama for colored output
-init(autoreset=True)
+# ==================== SAMPLE DATA CONFIGURATION ====================
 
-# Configuration
-API_URL = "http://localhost:8000"
-VEHICLES = ["V101", "V102", "V103", "V104", "V105"]  # Fleet of vehicles
+# Vehicle fleet
+VEHICLES = [
+    {"id": "V101", "name": "Tesla Model 3", "type": "Electric"},
+    {"id": "V102", "name": "Ford F-150", "type": "Petrol"},
+    {"id": "V103", "name": "Toyota Camry", "type": "Hybrid"},
+    {"id": "V104", "name": "BMW X5", "type": "Diesel"},
+    {"id": "V105", "name": "Mercedes Sprinter", "type": "Diesel"}
+]
 
 # Normal operating ranges for each parameter
 NORMAL_RANGES = {
-    'speed': (40, 80),           # km/h
-    'engine_temp': (75, 95),      # °C
-    'rpm': (1500, 3500),          # RPM
-    'battery_voltage': (11.8, 13.2),  # Volts
-    'fuel_level': (20, 90)        # Percentage
+    'speed': {'min': 40, 'max': 80, 'unit': 'km/h', 'warning': 120, 'critical': 140},
+    'engine_temp': {'min': 75, 'max': 95, 'unit': '°C', 'warning': 100, 'critical': 115},
+    'rpm': {'min': 1500, 'max': 3500, 'unit': 'RPM', 'warning': 6000, 'critical': 7000},
+    'battery_voltage': {'min': 11.8, 'max': 13.2, 'unit': 'V', 'warning': 11.0, 'critical': 10.0},
+    'fuel_level': {'min': 20, 'max': 90, 'unit': '%', 'warning': 10, 'critical': 5}
 }
 
-# Fault conditions and their effects
+# Ideal normal values (for reset)
+IDEAL_NORMAL = {
+    'speed': 65,
+    'engine_temp': 85,
+    'rpm': 2500,
+    'battery_voltage': 12.6,
+    'fuel_level': 75
+}
+
+# Fault scenarios with realistic values
 FAULT_SCENARIOS = [
     {
         'name': 'Engine Overheat',
         'severity': 'High',
-        'params': {
-            'engine_temp': (105, 130),  # Overheating range
-            'speed': (60, 100),         # Normal-ish speed
-            'rpm': (3000, 4500)         # Higher RPM
+        'values': {
+            'speed': 80,
+            'engine_temp': 118,
+            'rpm': 3200,
+            'battery_voltage': 12.3,
+            'fuel_level': 60
         },
-        'duration': (5, 15),  # seconds
-        'probability': 0.15
+        'duration': (8, 15),
+        'probability': 0.15,
+        'description': 'Cooling system failure - Immediate action required'
     },
     {
         'name': 'Overspeed',
         'severity': 'High',
-        'params': {
-            'speed': (130, 180),        # Very fast
-            'engine_temp': (85, 100),    # Normal to warm
-            'rpm': (4500, 6500)          # High RPM
+        'values': {
+            'speed': 155,
+            'engine_temp': 95,
+            'rpm': 4500,
+            'battery_voltage': 12.4,
+            'fuel_level': 50
         },
         'duration': (3, 8),
-        'probability': 0.10
+        'probability': 0.10,
+        'description': 'Vehicle exceeding safe speed limits'
     },
     {
         'name': 'Battery Failure',
         'severity': 'High',
-        'params': {
-            'battery_voltage': (8, 10.5),  # Low voltage
-            'speed': (40, 60),              # Slower
-            'rpm': (1000, 2000),             # Lower RPM
-            'engine_temp': (70, 85)          # Normal
+        'values': {
+            'speed': 45,
+            'engine_temp': 82,
+            'rpm': 1800,
+            'battery_voltage': 9.8,
+            'fuel_level': 40
         },
-        'duration': (10, 30),
-        'probability': 0.08
+        'duration': (10, 20),
+        'probability': 0.08,
+        'description': 'Critical battery voltage drop'
     },
     {
         'name': 'Engine Stress',
         'severity': 'Medium',
-        'params': {
-            'rpm': (6000, 8000),         # Very high RPM
-            'engine_temp': (95, 110),      # Hot
-            'speed': (100, 140),           # Fast
-            'battery_voltage': (12.0, 13.0)  # Normal
+        'values': {
+            'speed': 110,
+            'engine_temp': 105,
+            'rpm': 7200,
+            'battery_voltage': 12.1,
+            'fuel_level': 30
         },
         'duration': (4, 10),
-        'probability': 0.12
+        'probability': 0.12,
+        'description': 'Engine running at dangerously high RPM'
     },
     {
         'name': 'Low Fuel',
         'severity': 'Medium',
-        'params': {
-            'fuel_level': (2, 8),          # Very low
-            'speed': (50, 90),              # Normal
-            'engine_temp': (80, 95),        # Normal
-            'rpm': (2000, 3500)             # Normal
+        'values': {
+            'speed': 70,
+            'engine_temp': 88,
+            'rpm': 2500,
+            'battery_voltage': 12.5,
+            'fuel_level': 5
         },
-        'duration': (20, 60),
-        'probability': 0.10
-    },
-    {
-        'name': 'Cooling System Issue',
-        'severity': 'Medium',
-        'params': {
-            'engine_temp': (100, 115),      # Hot but not critical
-            'speed': (60, 90),               # Normal
-            'rpm': (2500, 4000)              # Slightly high
-        },
-        'duration': (8, 20),
-        'probability': 0.12
+        'duration': (15, 30),
+        'probability': 0.10,
+        'description': 'Fuel level critically low'
     },
     {
         'name': 'Electrical Fluctuation',
         'severity': 'Low',
-        'params': {
-            'battery_voltage': (10.5, 11.5),  # Unstable
-            'rpm': (2000, 4000),               # Varying
-            'engine_temp': (85, 100)           # Normal-warm
+        'values': {
+            'speed': 60,
+            'engine_temp': 90,
+            'rpm': 2800,
+            'battery_voltage': 10.8,
+            'fuel_level': 55
         },
-        'duration': (5, 15),
-        'probability': 0.15
+        'duration': (5, 12),
+        'probability': 0.12,
+        'description': 'Unstable voltage detected'
     },
     {
         'name': 'Sensor Glitch',
         'severity': 'Low',
-        'params': {
-            'speed': (0, 200),                 # Random spikes
-            'engine_temp': (70, 130),           # Random spikes
-            'rpm': (1000, 9000),                # Random spikes
-            'fuel_level': (0, 100)              # Random spikes
+        'values': {
+            'speed': 150,  # Spikes
+            'engine_temp': 110,  # Spikes
+            'rpm': 6500,   # Spikes
+            'battery_voltage': 14.5,  # Overcharging
+            'fuel_level': 15
         },
         'duration': (2, 5),
-        'probability': 0.08
+        'probability': 0.08,
+        'description': 'Erratic sensor readings'
     }
 ]
+
+# Gradual degradation patterns
+DEGRADATION_PATTERNS = {
+    'slow_overheat': {
+        'rate': 0.1,  # degrees per second
+        'target': 118,
+        'description': 'Gradual temperature increase'
+    },
+    'fuel_depletion': {
+        'rate': 0.05,  # percent per second
+        'target': 0,
+        'description': 'Slow fuel consumption'
+    },
+    'battery_drain': {
+        'rate': 0.02,  # volts per second
+        'target': 9.5,
+        'description': 'Battery discharging'
+    }
+}
+
+# Vehicle type specific variations
+VEHICLE_TYPE_VARIATIONS = {
+    'Electric': {
+        'speed_factor': 1.2,
+        'temp_factor': 0.7,
+        'battery_factor': 1.5,
+        'rpm_factor': 0.5
+    },
+    'Petrol': {
+        'speed_factor': 1.0,
+        'temp_factor': 1.2,
+        'battery_factor': 1.0,
+        'rpm_factor': 1.2
+    },
+    'Diesel': {
+        'speed_factor': 0.9,
+        'temp_factor': 1.1,
+        'battery_factor': 0.9,
+        'rpm_factor': 0.8
+    },
+    'Hybrid': {
+        'speed_factor': 1.0,
+        'temp_factor': 0.8,
+        'battery_factor': 1.3,
+        'rpm_factor': 0.9
+    }
+}
 
 class VehicleTelemetrySimulator:
     def __init__(self):
@@ -131,68 +196,136 @@ class VehicleTelemetrySimulator:
             'fault_counts': {}
         }
         
-        # Initialize vehicle states
-        for vehicle_id in VEHICLES:
+        # Initialize each vehicle
+        for vehicle in VEHICLES:
+            vehicle_id = vehicle['id']
             self.vehicles[vehicle_id] = {
-                'current_state': 'normal',
-                'fault_start_time': None,
-                'current_fault': None,
-                'last_values': self.generate_normal_data()
+                'info': vehicle,
+                'state': 'normal',
+                'current_values': self.generate_normal_data(vehicle['type']),
+                'degradation': None,
+                'fault_start': None
             }
     
-    def generate_normal_data(self):
-        """Generate normal telemetry data"""
-        return {
-            'speed': random.uniform(*NORMAL_RANGES['speed']),
-            'engine_temp': random.uniform(*NORMAL_RANGES['engine_temp']),
-            'rpm': random.uniform(*NORMAL_RANGES['rpm']),
-            'battery_voltage': random.uniform(*NORMAL_RANGES['battery_voltage']),
-            'fuel_level': random.uniform(*NORMAL_RANGES['fuel_level'])
-        }
-    
-    def generate_fault_data(self, fault_scenario):
-        """Generate data for a specific fault scenario"""
+    def generate_normal_data(self, vehicle_type):
+        """Generate normal telemetry data with vehicle-specific variations"""
+        variation = VEHICLE_TYPE_VARIATIONS.get(vehicle_type, VEHICLE_TYPE_VARIATIONS['Petrol'])
+        
         data = {}
-        
-        # Generate values for each parameter based on fault scenario
-        for param, range_values in fault_scenario['params'].items():
-            if isinstance(range_values, tuple):
-                data[param] = random.uniform(*range_values)
-            else:
-                data[param] = range_values
-        
-        # Fill in any missing parameters with normal ranges
-        for param in NORMAL_RANGES.keys():
-            if param not in data:
-                data[param] = random.uniform(*NORMAL_RANGES[param])
+        for param, ranges in NORMAL_RANGES.items():
+            base_value = random.uniform(ranges['min'], ranges['max'])
+            
+            # Apply vehicle type variation
+            if param == 'speed':
+                base_value *= variation['speed_factor']
+            elif param == 'engine_temp':
+                base_value *= variation['temp_factor']
+            elif param == 'battery_voltage':
+                base_value *= variation['battery_factor']
+            elif param == 'rpm':
+                base_value *= variation['rpm_factor']
+            
+            # Add small random variation
+            data[param] = base_value + random.uniform(-1, 1)
         
         return data
     
-    def select_fault(self):
-        """Randomly select a fault scenario based on probabilities"""
-        if random.random() < 0.3:  # 30% chance of fault
-            # Weighted random selection
-            faults = FAULT_SCENARIOS
-            probabilities = [f['probability'] for f in faults]
-            return random.choices(faults, weights=probabilities, k=1)[0]
-        return None
+    def check_fault_condition(self, data):
+        """Check if current data triggers any fault"""
+        alerts = []
+        
+        # Check each parameter against thresholds
+        for param, value in data.items():
+            if param in NORMAL_RANGES:
+                ranges = NORMAL_RANGES[param]
+                
+                # Check for critical fault
+                if 'critical' in ranges and value > ranges['critical']:
+                    alerts.append({
+                        'type': f'High {param.replace("_", " ").title()}',
+                        'severity': 'High',
+                        'value': value,
+                        'threshold': ranges['critical']
+                    })
+                # Check for warning
+                elif 'warning' in ranges and value > ranges['warning']:
+                    alerts.append({
+                        'type': f'{param.replace("_", " ").title()} Warning',
+                        'severity': 'Medium',
+                        'value': value,
+                        'threshold': ranges['warning']
+                    })
+        
+        return alerts
     
-    def send_telemetry(self, vehicle_id, data):
-        """Send telemetry data to the backend"""
-        try:
-            payload = {
-                'vehicle_id': vehicle_id,
-                **data,
-                'timestamp': datetime.now().isoformat()
+    def apply_fault_scenario(self, vehicle_id, scenario):
+        """Apply a fault scenario to a vehicle"""
+        vehicle = self.vehicles[vehicle_id]
+        fault_values = scenario['values'].copy()
+        
+        # Add some randomness to fault values
+        for param, value in fault_values.items():
+            fault_values[param] = value + random.uniform(-2, 2)
+        
+        vehicle['current_values'] = fault_values
+        vehicle['state'] = scenario['name']
+        vehicle['fault_start'] = time.time()
+        
+        return fault_values
+    
+    def apply_degradation(self, vehicle_id, pattern):
+        """Apply gradual degradation to a vehicle"""
+        vehicle = self.vehicles[vehicle_id]
+        
+        if vehicle['degradation'] is None:
+            vehicle['degradation'] = {
+                'pattern': pattern,
+                'start_value': vehicle['current_values'].copy(),
+                'start_time': time.time()
             }
-            
-            response = requests.post(f"{API_URL}/ingest", json=payload, timeout=2)
+        
+        # Calculate degraded values based on time
+        elapsed = time.time() - vehicle['degradation']['start_time']
+        
+        if pattern == 'slow_overheat':
+            vehicle['current_values']['engine_temp'] = min(
+                118,
+                vehicle['degradation']['start_value']['engine_temp'] + (elapsed * 0.1)
+            )
+        elif pattern == 'fuel_depletion':
+            vehicle['current_values']['fuel_level'] = max(
+                0,
+                vehicle['degradation']['start_value']['fuel_level'] - (elapsed * 0.05)
+            )
+        elif pattern == 'battery_drain':
+            vehicle['current_values']['battery_voltage'] = max(
+                9.5,
+                vehicle['degradation']['start_value']['battery_voltage'] - (elapsed * 0.02)
+            )
+    
+    def send_telemetry(self, vehicle_id):
+        """Send telemetry data to backend"""
+        vehicle = self.vehicles[vehicle_id]
+        data = vehicle['current_values']
+        
+        # Add vehicle_id and timestamp
+        payload = {
+            'vehicle_id': vehicle_id,
+            'speed': round(data['speed'], 1),
+            'engine_temp': round(data['engine_temp'], 1),
+            'rpm': round(data['rpm']),
+            'battery_voltage': round(data['battery_voltage'], 1),
+            'fuel_level': round(data['fuel_level']),
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        try:
+            response = requests.post("http://localhost:8000/ingest", json=payload, timeout=1)
             
             if response.status_code == 200:
                 result = response.json()
-                
-                # Update stats
                 self.stats['total_readings'] += 1
+                
                 if result['alerts']:
                     self.stats['total_alerts'] += len(result['alerts'])
                     for alert in result['alerts']:
@@ -200,212 +333,136 @@ class VehicleTelemetrySimulator:
                         self.stats['fault_counts'][fault_type] = self.stats['fault_counts'].get(fault_type, 0) + 1
                 
                 return result
-            else:
-                print(f"{Fore.RED}Error sending data: {response.status_code}")
-                return None
-        except requests.exceptions.ConnectionError:
-            print(f"{Fore.RED}Cannot connect to backend at {API_URL}")
-            return None
-        except Exception as e:
-            print(f"{Fore.RED}Error: {e}")
-            return None
-    
-    def print_status(self, vehicle_id, data, result, fault_info=None):
-        """Print colored status information"""
-        os.system('cls' if os.name == 'nt' else 'clear')  # Clear screen
-        
-        print(f"{Fore.CYAN}{'='*60}")
-        print(f"{Fore.CYAN}🚗 REAL-TIME VEHICLE TELEMETRY SIMULATOR")
-        print(f"{Fore.CYAN}{'='*60}\n")
-        
-        # Backend status
-        try:
-            requests.get(f"{API_URL}", timeout=1)
-            print(f"{Fore.GREEN}✅ Backend: Connected")
         except:
-            print(f"{Fore.RED}❌ Backend: Disconnected")
+            pass
         
-        print(f"\n{Fore.YELLOW}📊 FLEET STATUS")
-        print(f"{Fore.YELLOW}{'-'*40}")
+        return None
+    
+    def print_status(self):
+        """Print current status of all vehicles"""
+        os.system('cls' if os.name == 'nt' else 'clear')
         
-        # Display each vehicle's current state
-        for v_id in VEHICLES[:3]:  # Show first 3 vehicles
-            if v_id == vehicle_id:
-                # Current vehicle being updated
-                if fault_info:
-                    print(f"{Fore.RED}▶ {v_id}: {fault_info['name']} ({fault_info['severity']})")
-                else:
-                    print(f"{Fore.GREEN}▶ {v_id}: Normal Operation")
+        print("=" * 80)
+        print("🚗 VEHICLE TELEMETRY SIMULATOR")
+        print("=" * 80)
+        
+        # Check backend connection
+        try:
+            requests.get("http://localhost:8000", timeout=1)
+            print("✅ Backend: Connected")
+        except:
+            print("❌ Backend: Disconnected")
+        
+        print("\n📊 FLEET STATUS:")
+        print("-" * 80)
+        
+        for vehicle_id, vehicle in self.vehicles.items():
+            info = vehicle['info']
+            data = vehicle['current_values']
+            
+            # Determine status color/indicator
+            if vehicle['state'] != 'normal':
+                status = f"⚠️ {vehicle['state']}"
             else:
-                # Other vehicles
-                state = self.vehicles[v_id]['current_state']
-                if state == 'normal':
-                    print(f"{Fore.GREEN}  {v_id}: {state}")
-                else:
-                    print(f"{Fore.RED}  {v_id}: {state}")
+                status = "✅ Normal"
+            
+            print(f"\n{info['id']} - {info['name']} ({info['type']})")
+            print(f"  Status: {status}")
+            print(f"  Speed: {data['speed']:.1f} km/h | Temp: {data['engine_temp']:.1f}°C | RPM: {data['rpm']:.0f}")
+            print(f"  Battery: {data['battery_voltage']:.1f}V | Fuel: {data['fuel_level']:.1f}%")
         
-        print(f"\n{Fore.YELLOW}📈 CURRENT READING - {vehicle_id}")
-        print(f"{Fore.YELLOW}{'-'*40}")
-        print(f"Speed:         {data['speed']:.1f} km/h")
-        print(f"Engine Temp:   {data['engine_temp']:.1f} °C")
-        print(f"RPM:           {data['rpm']:.0f}")
-        print(f"Battery:       {data['battery_voltage']:.1f} V")
-        print(f"Fuel Level:    {data['fuel_level']:.1f}%")
-        
-        if result and result['alerts']:
-            print(f"\n{Fore.RED}⚠️ ACTIVE ALERTS")
-            print(f"{Fore.RED}{'-'*40}")
-            for alert in result['alerts']:
-                severity_color = {
-                    'High': Fore.RED,
-                    'Medium': Fore.YELLOW,
-                    'Low': Fore.GREEN
-                }.get(alert['severity'], Fore.WHITE)
-                
-                print(f"{severity_color}• {alert['fault_type']}")
-                print(f"  Severity: {alert['severity']}, Confidence: {alert['confidence']:.0%}")
-        
-        print(f"\n{Fore.YELLOW}📊 STATISTICS")
-        print(f"{Fore.YELLOW}{'-'*40}")
+        print("\n📈 STATISTICS:")
+        print("-" * 80)
         print(f"Total Readings: {self.stats['total_readings']}")
-        print(f"Total Alerts:    {self.stats['total_alerts']}")
-        print(f"Alert Rate:      {(self.stats['total_alerts']/max(1,self.stats['total_readings']))*100:.1f}%")
+        print(f"Total Alerts: {self.stats['total_alerts']}")
         
         if self.stats['fault_counts']:
-            print(f"\n{Fore.YELLOW}🔍 FAULT BREAKDOWN")
-            print(f"{Fore.YELLOW}{'-'*40}")
-            for fault, count in sorted(self.stats['fault_counts'].items(), key=lambda x: x[1], reverse=True)[:5]:
-                print(f"{fault}: {count}")
+            print("\n🔍 FAULT BREAKDOWN:")
+            for fault, count in sorted(self.stats['fault_counts'].items(), key=lambda x: x[1], reverse=True):
+                print(f"  {fault}: {count}")
     
     def simulate_vehicle(self, vehicle_id):
-        """Simulate a single vehicle's telemetry"""
+        """Simulate a single vehicle"""
         while self.running:
             try:
-                # Check if vehicle is in fault state
-                if vehicle_id in self.active_faults:
-                    fault_info = self.active_faults[vehicle_id]
-                    elapsed = time.time() - fault_info['start_time']
-                    
-                    if elapsed < fault_info['duration']:
-                        # Continue fault state
-                        data = self.generate_fault_data(fault_info['scenario'])
-                        self.vehicles[vehicle_id]['current_state'] = fault_info['scenario']['name']
-                    else:
-                        # End fault state
-                        del self.active_faults[vehicle_id]
-                        self.vehicles[vehicle_id]['current_state'] = 'normal'
-                        data = self.generate_normal_data()
+                vehicle = self.vehicles[vehicle_id]
+                
+                # Check if fault is active
+                if vehicle['state'] != 'normal':
+                    # Check if fault duration expired
+                    if vehicle['fault_start'] and (time.time() - vehicle['fault_start']) > 10:
+                        vehicle['state'] = 'normal'
+                        vehicle['current_values'] = self.generate_normal_data(vehicle['info']['type'])
+                
+                # Randomly trigger faults
+                elif random.random() < 0.02:  # 2% chance per iteration
+                    scenario = random.choice(FAULT_SCENARIOS)
+                    self.apply_fault_scenario(vehicle_id, scenario)
+                
+                # Randomly apply degradation
+                elif random.random() < 0.01:  # 1% chance
+                    pattern = random.choice(list(DEGRADATION_PATTERNS.keys()))
+                    self.apply_degradation(vehicle_id, pattern)
+                
+                # Normal variation
                 else:
-                    # Normal operation - check if fault should occur
-                    fault = self.select_fault()
-                    if fault:
-                        # Start new fault
-                        duration = random.uniform(*fault['duration'])
-                        self.active_faults[vehicle_id] = {
-                            'scenario': fault,
-                            'start_time': time.time(),
-                            'duration': duration
-                        }
-                        data = self.generate_fault_data(fault)
-                        self.vehicles[vehicle_id]['current_state'] = fault['name']
-                        self.vehicles[vehicle_id]['current_fault'] = fault
-                    else:
-                        # Normal data with slight random variation
-                        base_data = self.vehicles[vehicle_id]['last_values']
-                        data = {
-                            'speed': base_data['speed'] + random.uniform(-2, 2),
-                            'engine_temp': base_data['engine_temp'] + random.uniform(-0.5, 0.5),
-                            'rpm': base_data['rpm'] + random.uniform(-50, 50),
-                            'battery_voltage': base_data['battery_voltage'] + random.uniform(-0.1, 0.1),
-                            'fuel_level': base_data['fuel_level'] - 0.01  # Slowly decrease fuel
-                        }
+                    for param in NORMAL_RANGES.keys():
+                        current = vehicle['current_values'][param]
+                        variation = random.uniform(-1, 1)
+                        new_value = current + variation
                         
-                        # Ensure values stay within normal ranges
-                        for key in NORMAL_RANGES:
-                            if key != 'fuel_level':  # Fuel can go below normal range
-                                min_val, max_val = NORMAL_RANGES[key]
-                                data[key] = max(min_val, min(max_val, data[key]))
-                        
-                        self.vehicles[vehicle_id]['last_values'] = data
+                        # Keep within normal ranges
+                        ranges = NORMAL_RANGES[param]
+                        new_value = max(ranges['min'], min(ranges['max'], new_value))
+                        vehicle['current_values'][param] = new_value
                 
-                # Send data to backend
-                result = self.send_telemetry(vehicle_id, data)
+                # Send to backend
+                self.send_telemetry(vehicle_id)
                 
-                # Update display for this vehicle
-                if vehicle_id == VEHICLES[0]:  # Only print for first vehicle to avoid spam
-                    fault_info = self.active_faults.get(vehicle_id)
-                    self.print_status(vehicle_id, data, result, fault_info)
+                # Update display for first vehicle
+                if vehicle_id == VEHICLES[0]['id']:
+                    self.print_status()
                 
-                # Vary update frequency
                 time.sleep(random.uniform(0.5, 1.5))
                 
             except KeyboardInterrupt:
                 break
             except Exception as e:
-                print(f"{Fore.RED}Error in simulation: {e}")
-                time.sleep(2)
+                print(f"Error: {e}")
+                time.sleep(1)
     
     def start(self):
         """Start simulation for all vehicles"""
-        print(f"{Fore.GREEN}Starting vehicle telemetry simulator...")
-        print(f"{Fore.YELLOW}Connecting to backend at {API_URL}")
+        print("Starting vehicle telemetry simulator...")
+        print(f"Simulating {len(VEHICLES)} vehicles")
         
-        # Check backend connection
+        # Check backend
         try:
-            requests.get(f"{API_URL}", timeout=2)
-            print(f"{Fore.GREEN}✅ Connected to backend successfully!")
+            requests.get("http://localhost:8000", timeout=2)
+            print("✅ Connected to backend")
         except:
-            print(f"{Fore.RED}❌ Cannot connect to backend. Make sure it's running at {API_URL}")
+            print("❌ Cannot connect to backend")
             return
         
-        print(f"\n{Fore.CYAN}Simulating {len(VEHICLES)} vehicles:")
-        for v in VEHICLES:
-            print(f"{Fore.WHITE}  • {v}")
-        
-        print(f"\n{Fore.YELLOW}Press Ctrl+C to stop\n")
-        time.sleep(2)
-        
-        # Create a thread for each vehicle
+        # Start threads
         threads = []
-        for vehicle_id in VEHICLES:
-            thread = threading.Thread(target=self.simulate_vehicle, args=(vehicle_id,))
+        for vehicle in VEHICLES:
+            thread = threading.Thread(target=self.simulate_vehicle, args=(vehicle['id'],))
             thread.daemon = True
             thread.start()
             threads.append(thread)
         
+        print("\nSimulation running. Press Ctrl+C to stop.\n")
+        
         try:
-            # Keep main thread running
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
-            print(f"\n{Fore.YELLOW}Stopping simulator...")
+            print("\nStopping simulator...")
             self.running = False
             time.sleep(1)
-            print(f"{Fore.GREEN}Simulator stopped!")
-            
-            # Print final statistics
-            print(f"\n{Fore.CYAN}{'='*60}")
-            print(f"{Fore.CYAN}FINAL STATISTICS")
-            print(f"{Fore.CYAN}{'='*60}")
-            print(f"Total Readings: {self.stats['total_readings']}")
-            print(f"Total Alerts:    {self.stats['total_alerts']}")
-            print(f"Alert Rate:      {(self.stats['total_alerts']/max(1,self.stats['total_readings']))*100:.1f}%")
-            
-            if self.stats['fault_counts']:
-                print(f"\n{Fore.YELLOW}FAULT BREAKDOWN:")
-                for fault, count in sorted(self.stats['fault_counts'].items(), key=lambda x: x[1], reverse=True):
-                    print(f"  {fault}: {count}")
+            print("Simulator stopped")
 
 if __name__ == "__main__":
-    # Install colorama if not present
-    try:
-        import colorama
-    except ImportError:
-        print("Installing colorama for colored output...")
-        import subprocess
-        subprocess.check_call(["pip", "install", "colorama"])
-        import colorama
-        colorama.init()
-    
     simulator = VehicleTelemetrySimulator()
     simulator.start()
