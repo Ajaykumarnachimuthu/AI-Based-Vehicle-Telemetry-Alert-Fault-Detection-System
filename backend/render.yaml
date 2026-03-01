@@ -1,18 +1,26 @@
 services:
-  # Backend API Service using Docker
+
+  # Backend API (already deployed)
   - type: web
     name: vehicle-telemetry-api
     runtime: docker
-    repo: https://github.com/Ajaykumarnachimuthu/AI-Based-Vehicle-Telemetry-Alert-Fault-Detection-System
-    branch: main
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.0
-    healthCheckPath: /
+      - key: API_URL
+        value: https://vehicle-telemetry-api.onrender.com
 
-  # Frontend Static Site
+  # NEW: Simulator as background worker
+  - type: worker
+    name: vehicle-telemetry-simulator
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile.simulator
+    dockerContext: ./backend
+    envVars:
+      - key: API_URL
+        value: https://vehicle-telemetry-api.onrender.com
+
+  # Frontend Static Site (unchanged)
   - type: web
     name: vehicle-telemetry-dashboard
     runtime: static
