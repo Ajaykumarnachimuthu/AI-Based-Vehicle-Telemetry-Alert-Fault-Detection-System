@@ -1,14 +1,12 @@
-
 services:
-  # Backend API Service
+  # Backend API Service using Docker
   - type: web
     name: vehicle-telemetry-api
-    runtime: python
+    runtime: docker
     repo: https://github.com/Ajaykumarnachimuthu/AI-Based-Vehicle-Telemetry-Alert-Fault-Detection-System
     branch: main
-    rootDir: backend  # ← THIS IS THE KEY FIX!
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -22,4 +20,3 @@ services:
     branch: main
     buildCommand: echo "Static site - no build required"
     staticPublishPath: ./frontend
-
