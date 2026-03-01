@@ -292,7 +292,7 @@ body {
     right: 15px;
 }
 
-/* Status LED */
+
 .status-led-container {
     position: absolute;
     top: 10px;
@@ -348,7 +348,7 @@ body {
     animation: pulse 0.5s infinite;
 }
 
-/* Gauges */
+
 .gauges-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -400,7 +400,7 @@ body {
     transition: width 0.2s ease;
 }
 
-/* Quick Faults */
+
 .quick-faults {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -455,7 +455,7 @@ body {
     color: #059669;
 }
 
-/* Manual Controls */
+
 .manual-controls {
     margin-bottom: 25px;
 }
@@ -525,7 +525,7 @@ body {
     font-size: 13px;
 }
 
-/* Action Buttons */
+
 .action-buttons {
     display: grid;
     grid-template-columns: 2fr 1fr;
@@ -565,7 +565,7 @@ body {
     background: #e2e8f0;
 }
 
-/* Alert Filters */
+
 .alert-filters {
     display: flex;
     gap: 10px;
@@ -640,7 +640,7 @@ body {
     border-left: 4px solid #059669;
 }
 
-/* Alert Banner */
+
 .alert-banner {
     position: fixed;
     bottom: 30px;
@@ -754,7 +754,7 @@ input:checked+.slider:before {
     border-radius: 50%;
 }
 
-/* Responsive */
+
 @media (max-width: 1200px) {
     .main-grid {
         grid-template-columns: 1fr;
