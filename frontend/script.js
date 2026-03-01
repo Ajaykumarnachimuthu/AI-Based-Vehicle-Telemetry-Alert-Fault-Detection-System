@@ -1,5 +1,5 @@
 // ==================== CONFIGURATION ====================
-const API_URL = 'http://localhost:8000';
+const API_URL = 'https://vehicle-telemetry-api.onrender.com';
 let audioContext = null;
 let isSoundEnabled = true;
 let currentHighAlert = null;
