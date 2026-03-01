@@ -1,4 +1,4 @@
-services:
+
 services:
   # Backend API Service
   - type: web
@@ -6,15 +6,13 @@ services:
     runtime: python
     repo: https://github.com/Ajaykumarnachimuthu/AI-Based-Vehicle-Telemetry-Alert-Fault-Detection-System
     branch: main
-    buildCommand: |
-      cd backend
-      pip install -r backend/requirements.txt
-    startCommand: |
-      cd backend
-      uvicorn app:app --host 0.0.0.0 --port $PORT
+    rootDir: backend  # ← THIS IS THE KEY FIX!
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+    healthCheckPath: /
 
   # Frontend Static Site
   - type: web
@@ -24,3 +22,4 @@ services:
     branch: main
     buildCommand: echo "Static site - no build required"
     staticPublishPath: ./frontend
+
