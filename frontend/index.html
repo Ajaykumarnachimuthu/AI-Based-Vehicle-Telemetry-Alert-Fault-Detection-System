@@ -26,213 +26,229 @@
 
         <!-- Main Dashboard -->
         <div class="dashboard">
-            <!-- Sidebar -->
-            <div class="sidebar">
-                <div class="vehicle-selector">
-                    <h3><i class="fas fa-truck"></i> Vehicle Control</h3>
-                    <div class="input-group">
-                        <label for="vehicleId">Vehicle ID:</label>
-                        <input type="text" id="vehicleId" value="V101" placeholder="Enter Vehicle ID">
-                    </div>
-                    <button id="refreshBtn" class="btn-secondary">
-                        <i class="fas fa-sync-alt"></i> Refresh Data
-                    </button>
-                </div>
+            <!-- Left Panel - Vehicle Animation -->
+            <div class="vehicle-panel">
+                <div class="vehicle-card">
+                    <h3><i class="fas fa-truck"></i> Current Vehicle</h3>
 
-                <div class="stats-panel">
-                    <h3><i class="fas fa-chart-bar"></i> System Stats</h3>
-                    <div class="stat-item">
-                        <span class="stat-label">Total Alerts:</span>
-                        <span class="stat-value" id="totalAlerts">0</span>
+                    <!-- Vehicle Selector -->
+                    <div class="vehicle-selector">
+                        <label for="vehicleSelect">Select Vehicle:</label>
+                        <select id="vehicleSelect" class="vehicle-dropdown">
+                            <option value="V101">🚗 V101 - Tesla Model 3</option>
+                            <option value="V102">🚙 V102 - Ford F-150</option>
+                            <option value="V103">🚐 V103 - Toyota Camry</option>
+                            <option value="V104">🏎️ V104 - BMW X5</option>
+                            <option value="V105">🚛 V105 - Mercedes Sprinter</option>
+                        </select>
                     </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Active Vehicles:</span>
-                        <span class="stat-value" id="activeVehicles">0</span>
+
+                    <!-- Vehicle Animation -->
+                    <div class="vehicle-animation" id="vehicleAnimation">
+                        <div class="vehicle-status-led" id="vehicleStatusLED">
+                            <div class="led led-green" id="ledGreen"></div>
+                            <div class="led led-yellow" id="ledYellow"></div>
+                            <div class="led led-red" id="ledRed"></div>
+                        </div>
+                        <div class="car-animation" id="carAnimation">
+                            <div class="car-body">
+                                <div class="car-roof"></div>
+                                <div class="car-window"></div>
+                                <div class="car-wheel front-wheel"></div>
+                                <div class="car-wheel rear-wheel"></div>
+                            </div>
+                        </div>
+                        <div class="vehicle-status-text" id="vehicleStatus">
+                            <span class="status-badge normal">NORMAL</span>
+                        </div>
                     </div>
-                    <div class="severity-breakdown">
-                        <div class="severity-item high">
-                            <span>High</span>
-                            <span id="highCount">0</span>
-                        </div>
-                        <div class="severity-item medium">
-                            <span>Medium</span>
-                            <span id="mediumCount">0</span>
-                        </div>
-                        <div class="severity-item low">
-                            <span>Low</span>
-                            <span id="lowCount">0</span>
+
+                    <!-- Live Parameters -->
+                    <div class="live-parameters">
+                        <h4><i class="fas fa-chart-line"></i> Live Parameters</h4>
+                        <div class="parameter-grid">
+                            <div class="parameter-item">
+                                <span class="param-label">Speed:</span>
+                                <span class="param-value" id="liveSpeed">0 km/h</span>
+                                <div class="param-bar">
+                                    <div class="param-fill" id="speedBar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="param-label">Engine Temp:</span>
+                                <span class="param-value" id="liveTemp">0°C</span>
+                                <div class="param-bar">
+                                    <div class="param-fill" id="tempBar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="param-label">RPM:</span>
+                                <span class="param-value" id="liveRPM">0</span>
+                                <div class="param-bar">
+                                    <div class="param-fill" id="rpmBar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="param-label">Battery:</span>
+                                <span class="param-value" id="liveBattery">0V</span>
+                                <div class="param-bar">
+                                    <div class="param-fill" id="batteryBar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="parameter-item">
+                                <span class="param-label">Fuel:</span>
+                                <span class="param-value" id="liveFuel">0%</span>
+                                <div class="param-bar">
+                                    <div class="param-fill" id="fuelBar" style="width: 0%"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Main Content -->
-            <div class="main-content">
-                <!-- Tab Navigation -->
+            <!-- Right Panel - Controls & Alerts -->
+            <div class="controls-panel">
+                <!-- Control Tabs -->
                 <div class="tabs">
-                    <button class="tab-btn active" onclick="showTab('live')">
-                        <i class="fas fa-broadcast-tower"></i> Live Monitoring
+                    <button class="tab-btn active" onclick="showTab('manual')">
+                        <i class="fas fa-sliders-h"></i> Manual Control
+                    </button>
+                    <button class="tab-btn" onclick="showTab('auto')">
+                        <i class="fas fa-robot"></i> Auto Simulator
                     </button>
                     <button class="tab-btn" onclick="showTab('alerts')">
-                        <i class="fas fa-exclamation-triangle"></i> Alerts
-                    </button>
-                    <button class="tab-btn" onclick="showTab('analytics')">
-                        <i class="fas fa-chart-line"></i> Analytics
-                    </button>
-                    <button class="tab-btn" onclick="showTab('simulator')">
-                        <i class="fas fa-gamepad"></i> Simulator
+                        <i class="fas fa-exclamation-triangle"></i> Alert History
                     </button>
                 </div>
 
-                <!-- Tab Content -->
-                <div class="tab-content">
-                    <!-- Live Monitoring Tab -->
-                    <div id="live-tab" class="tab-pane active">
-                        <div class="telemetry-form">
-                            <h3><i class="fas fa-edit"></i> Send Telemetry Data</h3>
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label>Speed (km/h)</label>
-                                    <input type="range" id="speed" min="0" max="200" value="85"
-                                        oninput="updateValue('speedVal', this.value)">
-                                    <input type="number" id="speedVal" value="85" min="0" max="200"
-                                        onchange="updateRange('speed', this.value)">
-                                </div>
-                                <div class="form-group">
-                                    <label>Engine Temp (°C)</label>
-                                    <input type="range" id="engineTemp" min="0" max="150" value="92"
-                                        oninput="updateValue('engineTempVal', this.value)">
-                                    <input type="number" id="engineTempVal" value="92" min="0" max="150"
-                                        onchange="updateRange('engineTemp', this.value)">
-                                </div>
-                                <div class="form-group">
-                                    <label>RPM</label>
-                                    <input type="range" id="rpm" min="0" max="10000" value="2800"
-                                        oninput="updateValue('rpmVal', this.value)">
-                                    <input type="number" id="rpmVal" value="2800" min="0" max="10000"
-                                        onchange="updateRange('rpm', this.value)">
-                                </div>
-                                <div class="form-group">
-                                    <label>Battery Voltage (V)</label>
-                                    <input type="range" id="battery" min="0" max="24" value="12.4" step="0.1"
-                                        oninput="updateValue('batteryVal', this.value)">
-                                    <input type="number" id="batteryVal" value="12.4" min="0" max="24" step="0.1"
-                                        onchange="updateRange('battery', this.value)">
-                                </div>
-                                <div class="form-group">
-                                    <label>Fuel Level (%)</label>
-                                    <input type="range" id="fuel" min="0" max="100" value="45"
-                                        oninput="updateValue('fuelVal', this.value)">
-                                    <input type="number" id="fuelVal" value="45" min="0" max="100"
-                                        onchange="updateRange('fuel', this.value)">
-                                </div>
-                            </div>
-                            <button class="btn-primary" onclick="sendTelemetry()">
-                                <i class="fas fa-paper-plane"></i> Send Telemetry
-                            </button>
+                <!-- Manual Control Tab -->
+                <div id="manual-tab" class="tab-pane active">
+                    <div class="control-panel">
+                        <h3><i class="fas fa-sliders-h"></i> Manual Telemetry Control</h3>
+
+                        <div class="slider-group">
+                            <label>Speed: <span id="speedVal">85</span> km/h</label>
+                            <input type="range" id="speed" min="0" max="200" value="85" oninput="updateLiveParams()">
                         </div>
 
-                        <div class="recent-data">
-                            <h3><i class="fas fa-history"></i> Recent Telemetry</h3>
-                            <div class="table-container">
-                                <table id="recentTable">
-                                    <thead>
-                                        <tr>
-                                            <th>Time</th>
-                                            <th>Speed</th>
-                                            <th>Temp</th>
-                                            <th>RPM</th>
-                                            <th>Battery</th>
-                                            <th>Fuel</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="recentDataBody">
-                                        <tr>
-                                            <td colspan="6" class="no-data">No data available</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                        <div class="slider-group">
+                            <label>Engine Temp: <span id="tempVal">92</span> °C</label>
+                            <input type="range" id="engineTemp" min="0" max="150" value="92"
+                                oninput="updateLiveParams()">
                         </div>
+
+                        <div class="slider-group">
+                            <label>RPM: <span id="rpmVal">2800</span></label>
+                            <input type="range" id="rpm" min="0" max="10000" value="2800" oninput="updateLiveParams()">
+                        </div>
+
+                        <div class="slider-group">
+                            <label>Battery: <span id="batteryVal">12.4</span> V</label>
+                            <input type="range" id="battery" min="0" max="24" value="12.4" step="0.1"
+                                oninput="updateLiveParams()">
+                        </div>
+
+                        <div class="slider-group">
+                            <label>Fuel: <span id="fuelVal">45</span> %</label>
+                            <input type="range" id="fuel" min="0" max="100" value="45" oninput="updateLiveParams()">
+                        </div>
+
+                        <button class="btn-primary" onclick="sendTelemetry()">
+                            <i class="fas fa-paper-plane"></i> SEND DATA
+                        </button>
+
+                        <button class="btn-secondary" onclick="resetToNormal()">
+                            <i class="fas fa-undo"></i> Reset to Normal
+                        </button>
                     </div>
+                </div>
 
-                    <!-- Alerts Tab -->
-                    <div id="alerts-tab" class="tab-pane">
-                        <div class="alerts-header">
-                            <h3><i class="fas fa-exclamation-circle"></i> Alert Dashboard</h3>
-                            <div class="alert-filters">
-                                <select id="severityFilter" onchange="loadAlerts()">
-                                    <option value="All">All Severities</option>
-                                    <option value="High">High</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="Low">Low</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="alerts-list" id="alertsList">
-                            <div class="no-data">No alerts found</div>
-                        </div>
-                    </div>
+                <!-- Auto Simulator Tab -->
+                <div id="auto-tab" class="tab-pane">
+                    <div class="simulator-panel">
+                        <h3><i class="fas fa-robot"></i> Auto Simulator</h3>
 
-                    <!-- Analytics Tab -->
-                    <div id="analytics-tab" class="tab-pane">
-                        <div class="charts-grid">
-                            <div class="chart-card">
-                                <h4>Severity Distribution</h4>
-                                <div class="chart-container" id="severityChart"></div>
-                            </div>
-                            <div class="chart-card">
-                                <h4>Top Fault Types</h4>
-                                <div class="chart-container" id="faultChart"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Simulator Tab -->
-                    <div id="simulator-tab" class="tab-pane">
                         <div class="simulator-controls">
-                            <h3><i class="fas fa-robot"></i> Telemetry Simulator</h3>
-                            <div class="simulator-grid">
-                                <div class="form-group">
-                                    <label>Vehicle ID</label>
-                                    <input type="text" id="simVehicleId" value="SIM001">
-                                </div>
-                                <div class="form-group">
-                                    <label>Anomaly Probability</label>
-                                    <input type="range" id="anomalyProb" min="0" max="1" step="0.05" value="0.2"
-                                        oninput="updateValue('anomalyProbVal', this.value)">
-                                    <input type="number" id="anomalyProbVal" value="0.2" min="0" max="1" step="0.05"
-                                        onchange="updateRange('anomalyProb', this.value)">
-                                </div>
-                                <div class="form-group">
-                                    <label>Duration (seconds)</label>
-                                    <input type="number" id="simDuration" value="10" min="5" max="60">
-                                </div>
-                            </div>
-                            <button class="btn-primary" onclick="startSimulation()">
-                                <i class="fas fa-play"></i> Start Simulation
-                            </button>
-                            <div id="simulationOutput" class="simulation-output"></div>
+                            <label>Anomaly Probability:</label>
+                            <input type="range" id="simProb" min="0" max="1" step="0.05" value="0.2"
+                                oninput="document.getElementById('probVal').textContent = (this.value * 100) + '%'">
+                            <span id="probVal">20%</span>
                         </div>
 
-                        <div class="test-cases">
-                            <h4>Quick Test Cases</h4>
-                            <div class="test-buttons">
-                                <button class="test-btn" onclick="loadTestCase('normal')">Normal</button>
-                                <button class="test-btn" onclick="loadTestCase('overheat')">Engine Overheat</button>
-                                <button class="test-btn" onclick="loadTestCase('overspeed')">Overspeed</button>
-                                <button class="test-btn" onclick="loadTestCase('battery')">Battery Failure</button>
-                                <button class="test-btn" onclick="loadTestCase('rpm')">High RPM</button>
-                            </div>
+                        <div class="fault-buttons">
+                            <button class="fault-btn" onclick="triggerFault('overheat')">
+                                🔥 Engine Overheat
+                            </button>
+                            <button class="fault-btn" onclick="triggerFault('overspeed')">
+                                ⚡ Overspeed
+                            </button>
+                            <button class="fault-btn" onclick="triggerFault('battery')">
+                                🔋 Battery Failure
+                            </button>
+                            <button class="fault-btn" onclick="triggerFault('rpm')">
+                                ⚙️ High RPM
+                            </button>
+                            <button class="fault-btn" onclick="triggerFault('fuel')">
+                                ⛽ Low Fuel
+                            </button>
+                        </div>
+
+                        <button class="btn-primary" onclick="startAutoSimulator()">
+                            <i class="fas fa-play"></i> START SIMULATION
+                        </button>
+                        <button class="btn-secondary" onclick="stopAutoSimulator()">
+                            <i class="fas fa-stop"></i> STOP
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Alert History Tab -->
+                <div id="alerts-tab" class="tab-pane">
+                    <div class="alerts-panel">
+                        <h3><i class="fas fa-history"></i> Alert History</h3>
+
+                        <div class="alert-filters">
+                            <select id="alertFilter" onchange="filterAlerts()">
+                                <option value="all">All Alerts</option>
+                                <option value="High">High Severity Only</option>
+                                <option value="Medium">Medium Severity Only</option>
+                                <option value="Low">Low Severity Only</option>
+                            </select>
+                            <button onclick="clearAlerts()" class="btn-small">
+                                <i class="fas fa-trash"></i> Clear
+                            </button>
+                        </div>
+
+                        <div class="alert-list" id="alertList">
+                            <!-- Alerts will appear here -->
                         </div>
                     </div>
+                </div>
+
+                <!-- Sound Control Toggle -->
+                <div class="sound-control">
+                    <label class="sound-toggle">
+                        <input type="checkbox" id="soundToggle" checked onchange="toggleSound()">
+                        <span class="toggle-label"><i class="fas fa-volume-up"></i> Sound Alerts</span>
+                    </label>
+                </div>
+
+                <!-- Current Alert Banner (Floating) -->
+                <div class="alert-banner" id="alertBanner" style="display: none;">
+                    <div class="alert-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="alert-message" id="alertMessage">
+                        ⚠️ HIGH SEVERITY ALERT: Engine Overheat
+                    </div>
+                    <button class="alert-close" onclick="dismissAlert()">✕</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="toast"></div>
+    <!-- No audio elements needed - all sounds generated by JavaScript! -->
 
     <script src="script.js"></script>
 </body>

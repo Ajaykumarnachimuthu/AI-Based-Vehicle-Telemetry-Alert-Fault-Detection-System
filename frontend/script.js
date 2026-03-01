@@ -1,19 +1,211 @@
-// API Configuration
+// ==================== CONFIGURATION ====================
 const API_URL = 'http://localhost:8000';
+let currentVehicle = 'V101';
+let autoSimulatorInterval = null;
+let audioContext = null;
+let isSoundEnabled = true;
+let currentHighAlert = null;
 
-// Global variables
-let autoRefreshInterval;
-let simulationInterval;
+// ==================== AUDIO GENERATOR ====================
+// Web Audio API - Generates sounds without external files!
 
-// Initialize on page load
+// Sound durations for each severity (in milliseconds)
+const SOUND_DURATIONS = {
+    'high': 4000,    // 4 seconds - continuous pulsing
+    'medium': 2000,  // 2 seconds - single beep
+    'low': 800       // 0.8 seconds - short chirp
+};
+
+// Initialize audio context (requires user interaction)
+function initAudio() {
+    if (audioContext) return audioContext;
+
+    try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        console.log("✅ Audio system ready");
+        return audioContext;
+    } catch (e) {
+        console.log("❌ Web Audio API not supported");
+        return null;
+    }
+}
+
+// Toggle sound on/off
+function toggleSound() {
+    isSoundEnabled = document.getElementById('soundToggle').checked;
+    if (!isSoundEnabled && currentHighAlert) {
+        // Stop any playing sound
+        try {
+            currentHighAlert.stop();
+        } catch (e) { }
+        currentHighAlert = null;
+    }
+}
+
+// Main function to play alert sounds
+function playAlertSound(severity) {
+    if (!isSoundEnabled) return;
+
+    // Initialize audio on first use
+    if (!audioContext) {
+        audioContext = initAudio();
+        if (!audioContext) return;
+    }
+
+    // Resume if suspended (browser autoplay policy)
+    if (audioContext.state === 'suspended') {
+        audioContext.resume();
+    }
+
+    // Stop any currently playing high alert
+    if (currentHighAlert) {
+        try {
+            currentHighAlert.stop();
+        } catch (e) { }
+        currentHighAlert = null;
+    }
+
+    // Play the appropriate sound
+    switch (severity) {
+        case 'high':
+            playHighAlert();
+            break;
+        case 'medium':
+            playMediumAlert();
+            break;
+        case 'low':
+            playLowAlert();
+            break;
+    }
+}
+
+// HIGH ALERT - 4 seconds (pulsing siren)
+function playHighAlert() {
+    const ctx = audioContext;
+    const duration = SOUND_DURATIONS.high / 1000; // Convert to seconds
+    const startTime = ctx.currentTime;
+
+    // Create nodes
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+
+    // Configure
+    oscillator.type = 'sawtooth';
+    filter.type = 'lowpass';
+    filter.frequency.value = 800;
+
+    // Connect
+    oscillator.connect(filter);
+    filter.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    // Pulsing siren effect
+    const pulseCount = 8; // 8 pulses in 4 seconds
+    for (let i = 0; i < pulseCount; i++) {
+        const pulseStart = startTime + (i * duration / pulseCount);
+        const pulseMid = pulseStart + (duration / pulseCount / 2);
+        const pulseEnd = pulseStart + (duration / pulseCount);
+
+        // Frequency sweep (siren effect)
+        oscillator.frequency.setValueAtTime(600, pulseStart);
+        oscillator.frequency.linearRampToValueAtTime(800, pulseMid);
+        oscillator.frequency.linearRampToValueAtTime(600, pulseEnd);
+
+        // Volume envelope (pulsing)
+        gainNode.gain.setValueAtTime(0.3, pulseStart);
+        gainNode.gain.linearRampToValueAtTime(0.5, pulseMid);
+        gainNode.gain.linearRampToValueAtTime(0, pulseEnd);
+    }
+
+    // Start and stop
+    oscillator.start(startTime);
+    oscillator.stop(startTime + duration);
+
+    // Store reference
+    currentHighAlert = oscillator;
+
+    // Auto-cleanup
+    setTimeout(() => {
+        if (currentHighAlert === oscillator) {
+            currentHighAlert = null;
+        }
+    }, duration * 1000);
+}
+
+// MEDIUM ALERT - 2 seconds (dual beep)
+function playMediumAlert() {
+    const ctx = audioContext;
+    const duration = SOUND_DURATIONS.medium / 1000;
+    const startTime = ctx.currentTime;
+
+    // Two beeps
+    for (let beep = 0; beep < 2; beep++) {
+        const beepStart = startTime + (beep * 0.8);
+
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+
+        oscillator.type = 'sine';
+        oscillator.frequency.value = 600;
+
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        // Beep envelope
+        gainNode.gain.setValueAtTime(0, beepStart);
+        gainNode.gain.linearRampToValueAtTime(0.3, beepStart + 0.01);
+        gainNode.gain.linearRampToValueAtTime(0, beepStart + 0.3);
+
+        oscillator.start(beepStart);
+        oscillator.stop(beepStart + 0.3);
+    }
+}
+
+// LOW ALERT - 0.8 seconds (soft beep)
+function playLowAlert() {
+    const ctx = audioContext;
+    const duration = SOUND_DURATIONS.low / 1000;
+    const startTime = ctx.currentTime;
+
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    oscillator.type = 'sine';
+    oscillator.frequency.value = 400;
+
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    // Soft envelope
+    gainNode.gain.setValueAtTime(0, startTime);
+    gainNode.gain.linearRampToValueAtTime(0.15, startTime + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+
+    oscillator.start(startTime);
+    oscillator.stop(startTime + duration);
+}
+
+// ==================== BACKEND CONNECTION ====================
+
+// Initialize on load
 document.addEventListener('DOMContentLoaded', () => {
     checkBackendStatus();
-    loadDashboardStats();
-    loadRecentTelemetry();
-    loadAlerts();
+    loadVehicleData();
+    updateLiveParams();
 
-    // Set up auto-refresh
-    startAutoRefresh();
+    // Initialize audio on first user interaction
+    document.body.addEventListener('click', function initAudioOnFirstClick() {
+        initAudio();
+        document.body.removeEventListener('click', initAudioOnFirstClick);
+    }, { once: true });
+
+    // Start real-time updates
+    setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            loadVehicleData();
+        }
+    }, 2000);
 });
 
 // Check backend connection
@@ -22,379 +214,341 @@ async function checkBackendStatus() {
         const response = await fetch(`${API_URL}/`);
         if (response.ok) {
             document.getElementById('backendStatus').className = 'status-indicator connected';
-            document.getElementById('statusText').textContent = 'Backend Connected';
-            showToast('Backend connected successfully', 'success');
-        } else {
-            throw new Error('Backend not responding');
+            document.getElementById('statusText').textContent = 'Connected';
         }
     } catch (error) {
-        document.getElementById('backendStatus').className = 'status-indicator disconnected';
-        document.getElementById('statusText').textContent = 'Backend Disconnected';
-        showToast('Cannot connect to backend', 'error');
+        document.getElementById('backendStatus').className = 'status-indicator';
+        document.getElementById('statusText').textContent = 'Disconnected';
     }
 }
 
-// Load dashboard statistics
-async function loadDashboardStats() {
-    try {
-        const response = await fetch(`${API_URL}/dashboard/stats`);
-        const data = await response.json();
+// Update live parameters from sliders
+function updateLiveParams() {
+    const speed = document.getElementById('speed').value;
+    const temp = document.getElementById('engineTemp').value;
+    const rpm = document.getElementById('rpm').value;
+    const battery = document.getElementById('battery').value;
+    const fuel = document.getElementById('fuel').value;
 
-        document.getElementById('totalAlerts').textContent = data.total_alerts || 0;
-        document.getElementById('activeVehicles').textContent = data.active_vehicles || 0;
-        document.getElementById('highCount').textContent = data.severity_distribution?.High || 0;
-        document.getElementById('mediumCount').textContent = data.severity_distribution?.Medium || 0;
-        document.getElementById('lowCount').textContent = data.severity_distribution?.Low || 0;
+    // Update displayed values
+    document.getElementById('speedVal').textContent = speed;
+    document.getElementById('tempVal').textContent = temp;
+    document.getElementById('rpmVal').textContent = rpm;
+    document.getElementById('batteryVal').textContent = battery;
+    document.getElementById('fuelVal').textContent = fuel;
 
-        updateCharts(data);
-    } catch (error) {
-        console.error('Error loading stats:', error);
-    }
-}
+    // Update live display
+    document.getElementById('liveSpeed').textContent = speed + ' km/h';
+    document.getElementById('liveTemp').textContent = temp + '°C';
+    document.getElementById('liveRPM').textContent = rpm;
+    document.getElementById('liveBattery').textContent = battery + 'V';
+    document.getElementById('liveFuel').textContent = fuel + '%';
 
-// Load recent telemetry
-async function loadRecentTelemetry() {
-    const vehicleId = document.getElementById('vehicleId').value;
+    // Update progress bars
+    document.getElementById('speedBar').style.width = (speed / 200 * 100) + '%';
+    document.getElementById('tempBar').style.width = (temp / 150 * 100) + '%';
+    document.getElementById('rpmBar').style.width = (rpm / 10000 * 100) + '%';
+    document.getElementById('batteryBar').style.width = (battery / 24 * 100) + '%';
+    document.getElementById('fuelBar').style.width = fuel + '%';
 
-    try {
-        const response = await fetch(`${API_URL}/vehicle/${vehicleId}/recent?limit=10`);
-        const data = await response.json();
-
-        const tbody = document.getElementById('recentDataBody');
-
-        if (data.data && data.data.length > 0) {
-            tbody.innerHTML = data.data.map(item => `
-                <tr>
-                    <td>${new Date(item.timestamp).toLocaleTimeString()}</td>
-                    <td>${item.speed} km/h</td>
-                    <td>${item.engine_temp}°C</td>
-                    <td>${item.rpm}</td>
-                    <td>${item.battery_voltage}V</td>
-                    <td>${item.fuel_level}%</td>
-                </tr>
-            `).join('');
-        } else {
-            tbody.innerHTML = '<tr><td colspan="6" class="no-data">No data available</td></tr>';
-        }
-    } catch (error) {
-        console.error('Error loading telemetry:', error);
-    }
-}
-
-// Load alerts
-async function loadAlerts() {
-    const severity = document.getElementById('severityFilter').value;
-    const url = severity === 'All'
-        ? `${API_URL}/alerts?limit=50`
-        : `${API_URL}/alerts?severity=${severity}&limit=50`;
-
-    try {
-        const response = await fetch(url);
-        const data = await response.json();
-
-        const alertsList = document.getElementById('alertsList');
-
-        if (data.alerts && data.alerts.length > 0) {
-            alertsList.innerHTML = data.alerts.map(alert => `
-                <div class="alert-item ${alert.severity.toLowerCase()}">
-                    <div class="alert-header">
-                        <span class="alert-type">${alert.fault_type}</span>
-                        <span class="alert-severity ${alert.severity.toLowerCase()}">${alert.severity}</span>
-                    </div>
-                    <div class="alert-body">
-                        <span>Vehicle: ${alert.vehicle_id}</span>
-                        <span class="alert-confidence">Confidence: ${(alert.confidence * 100).toFixed(0)}%</span>
-                    </div>
-                    <div class="alert-time">${new Date(alert.timestamp).toLocaleString()}</div>
-                </div>
-            `).join('');
-        } else {
-            alertsList.innerHTML = '<div class="no-data">No alerts found</div>';
-        }
-    } catch (error) {
-        console.error('Error loading alerts:', error);
+    // Update car animation speed
+    const carAnim = document.getElementById('carAnimation');
+    if (speed > 120) {
+        carAnim.classList.add('fast');
+    } else {
+        carAnim.classList.remove('fast');
     }
 }
 
 // Send telemetry data
 async function sendTelemetry() {
-    const vehicleId = document.getElementById('vehicleId').value;
+    const vehicleId = document.getElementById('vehicleSelect').value;
 
     const data = {
         vehicle_id: vehicleId,
-        speed: parseFloat(document.getElementById('speedVal').value),
-        engine_temp: parseFloat(document.getElementById('engineTempVal').value),
-        rpm: parseFloat(document.getElementById('rpmVal').value),
-        battery_voltage: parseFloat(document.getElementById('batteryVal').value),
-        fuel_level: parseFloat(document.getElementById('fuelVal').value),
+        speed: parseFloat(document.getElementById('speed').value),
+        engine_temp: parseFloat(document.getElementById('engineTemp').value),
+        rpm: parseFloat(document.getElementById('rpm').value),
+        battery_voltage: parseFloat(document.getElementById('battery').value),
+        fuel_level: parseFloat(document.getElementById('fuel').value),
         timestamp: new Date().toISOString()
     };
 
     try {
         const response = await fetch(`${API_URL}/ingest`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
 
-        const result = await response.json();
-
-        if (result.alerts && result.alerts.length > 0) {
-            showToast(`${result.alerts.length} alert(s) generated!`, 'warning');
-            result.alerts.forEach(alert => {
-                console.log('Alert:', alert);
-            });
-        } else {
-            showToast('Data sent successfully - No alerts', 'success');
-        }
-
-        // Refresh data
-        loadRecentTelemetry();
-        loadAlerts();
-        loadDashboardStats();
-    } catch (error) {
-        console.error('Error sending telemetry:', error);
-        showToast('Failed to send telemetry data', 'error');
-    }
-}
-
-// Start simulation
-async function startSimulation() {
-    const vehicleId = document.getElementById('simVehicleId').value;
-    const probability = parseFloat(document.getElementById('anomalyProbVal').value);
-    const duration = parseInt(document.getElementById('simDuration').value);
-
-    const output = document.getElementById('simulationOutput');
-    output.innerHTML = '<div class="spinner"></div>';
-
-    const steps = duration;
-    let step = 0;
-
-    if (simulationInterval) {
-        clearInterval(simulationInterval);
-    }
-
-    simulationInterval = setInterval(async () => {
-        step++;
-
-        // Generate random data with anomaly probability
-        const isAnomaly = Math.random() < probability;
-
-        let data;
-        if (isAnomaly) {
-            data = {
-                vehicle_id: vehicleId,
-                speed: 130 + Math.random() * 50,
-                engine_temp: 105 + Math.random() * 25,
-                rpm: 6500 + Math.random() * 2000,
-                battery_voltage: 8 + Math.random() * 3,
-                fuel_level: Math.random() * 10,
-                timestamp: new Date().toISOString()
-            };
-        } else {
-            data = {
-                vehicle_id: vehicleId,
-                speed: 40 + Math.random() * 60,
-                engine_temp: 75 + Math.random() * 20,
-                rpm: 1500 + Math.random() * 2000,
-                battery_voltage: 11.5 + Math.random() * 2,
-                fuel_level: 20 + Math.random() * 70,
-                timestamp: new Date().toISOString()
-            };
-        }
-
-        try {
-            const response = await fetch(`${API_URL}/ingest`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            });
-
+        if (response.ok) {
             const result = await response.json();
-
-            const logEntry = document.createElement('div');
-            logEntry.className = `sim-log ${isAnomaly ? 'anomaly' : ''}`;
-            logEntry.textContent = `Step ${step}: Sent ${isAnomaly ? '⚠️ ANOMALY' : '✓ normal'} data - ${result.alerts.length} alerts`;
-
-            output.appendChild(logEntry);
-            output.scrollTop = output.scrollHeight;
-
-            if (step >= steps) {
-                clearInterval(simulationInterval);
-                output.appendChild(document.createElement('div')).textContent = '✅ Simulation complete!';
-            }
-
-            // Refresh data
-            loadRecentTelemetry();
-            loadAlerts();
-            loadDashboardStats();
-        } catch (error) {
-            console.error('Simulation error:', error);
+            handleDetectionResult(result);
         }
-    }, 1000);
-}
-
-// Load test case
-function loadTestCase(type) {
-    const testCases = {
-        normal: { speed: 65, engineTemp: 85, rpm: 2500, battery: 12.6, fuel: 75 },
-        overheat: { speed: 80, engineTemp: 118, rpm: 3200, battery: 12.3, fuel: 60 },
-        overspeed: { speed: 155, engineTemp: 95, rpm: 4500, battery: 12.4, fuel: 50 },
-        battery: { speed: 45, engineTemp: 82, rpm: 1800, battery: 9.8, fuel: 40 },
-        rpm: { speed: 110, engineTemp: 105, rpm: 7200, battery: 12.1, fuel: 30 }
-    };
-
-    const testCase = testCases[type];
-    if (testCase) {
-        document.getElementById('speedVal').value = testCase.speed;
-        document.getElementById('speed').value = testCase.speed;
-        document.getElementById('engineTempVal').value = testCase.engineTemp;
-        document.getElementById('engineTemp').value = testCase.engineTemp;
-        document.getElementById('rpmVal').value = testCase.rpm;
-        document.getElementById('rpm').value = testCase.rpm;
-        document.getElementById('batteryVal').value = testCase.battery;
-        document.getElementById('battery').value = testCase.battery;
-        document.getElementById('fuelVal').value = testCase.fuel;
-        document.getElementById('fuel').value = testCase.fuel;
-
-        showToast(`Loaded ${type} test case`, 'info');
+    } catch (error) {
+        console.log('Failed to send data');
     }
 }
 
-// Update charts
-function updateCharts(stats) {
-    // Severity distribution chart
-    const severityCtx = document.getElementById('severityChart');
-    if (severityCtx) {
-        severityCtx.innerHTML = '';
-        const severityData = {
-            labels: ['High', 'Medium', 'Low'],
-            datasets: [{
-                data: [
-                    stats.severity_distribution?.High || 0,
-                    stats.severity_distribution?.Medium || 0,
-                    stats.severity_distribution?.Low || 0
-                ],
-                backgroundColor: ['#e74c3c', '#f39c12', '#27ae60']
-            }]
-        };
+// Handle detection result
+function handleDetectionResult(result) {
+    if (result.alerts && result.alerts.length > 0) {
+        const highestSeverity = getHighestSeverity(result.alerts);
+        updateVehicleStatus(highestSeverity, result.alerts[0]);
 
-        // Simple bar chart using divs
-        createBarChart(severityCtx, severityData);
-    }
+        // Add to alert history
+        result.alerts.forEach(alert => addToAlertHistory(alert));
 
-    // Fault types chart
-    const faultCtx = document.getElementById('faultChart');
-    if (faultCtx && stats.fault_type_distribution) {
-        faultCtx.innerHTML = '';
-        const faultData = {
-            labels: Object.keys(stats.fault_type_distribution).slice(0, 5),
-            datasets: [{
-                data: Object.values(stats.fault_type_distribution).slice(0, 5),
-                backgroundColor: '#667eea'
-            }]
-        };
+        // Play sound based on severity
+        playAlertSound(highestSeverity);
 
-        createBarChart(faultCtx, faultData);
+        // Show banner for high severity
+        if (highestSeverity === 'High') {
+            showAlertBanner(result.alerts[0]);
+        }
+    } else {
+        setNormalStatus();
     }
 }
 
-// Simple bar chart creator
-function createBarChart(container, data) {
-    const maxValue = Math.max(...data.datasets[0].data);
+// Get highest severity from alerts
+function getHighestSeverity(alerts) {
+    const severityOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
+    return alerts.reduce((max, alert) =>
+        severityOrder[alert.severity] > severityOrder[max] ? alert.severity : max, 'Low'
+    );
+}
 
-    container.style.display = 'flex';
-    container.style.flexDirection = 'column';
-    container.style.gap = '10px';
+// Update vehicle status indicators
+function updateVehicleStatus(severity, alert) {
+    const ledGreen = document.getElementById('ledGreen');
+    const ledYellow = document.getElementById('ledYellow');
+    const ledRed = document.getElementById('ledRed');
+    const statusBadge = document.querySelector('.status-badge');
+    const vehicleAnim = document.getElementById('carAnimation');
 
-    data.labels.forEach((label, index) => {
-        const value = data.datasets[0].data[index];
-        const percentage = (value / maxValue) * 100;
+    // Reset all LEDs
+    ledGreen.classList.remove('active');
+    ledYellow.classList.remove('active');
+    ledRed.classList.remove('active');
 
-        const barContainer = document.createElement('div');
-        barContainer.style.display = 'flex';
-        barContainer.style.alignItems = 'center';
-        barContainer.style.gap = '10px';
+    // Stop car animation on high severity
+    if (severity === 'High') {
+        vehicleAnim.classList.add('paused');
+    } else {
+        vehicleAnim.classList.remove('paused');
+    }
 
-        const labelSpan = document.createElement('span');
-        labelSpan.style.width = '80px';
-        labelSpan.textContent = label;
+    // Set appropriate LED and badge
+    switch (severity) {
+        case 'High':
+            ledRed.classList.add('active');
+            statusBadge.className = 'status-badge danger';
+            statusBadge.textContent = `DANGER: ${alert.fault_type}`;
+            break;
+        case 'Medium':
+            ledYellow.classList.add('active');
+            statusBadge.className = 'status-badge warning';
+            statusBadge.textContent = `WARNING: ${alert.fault_type}`;
+            break;
+        case 'Low':
+            ledYellow.classList.add('active');
+            statusBadge.className = 'status-badge warning';
+            statusBadge.textContent = `CAUTION: ${alert.fault_type}`;
+            break;
+    }
+}
 
-        const bar = document.createElement('div');
-        bar.style.height = '20px';
-        bar.style.width = `${percentage}%`;
-        bar.style.background = data.datasets[0].backgroundColor[index] || data.datasets[0].backgroundColor;
-        bar.style.borderRadius = '4px';
-        bar.style.transition = 'width 0.3s';
+// Set normal status (green)
+function setNormalStatus() {
+    document.getElementById('ledGreen').classList.add('active');
+    document.getElementById('ledYellow').classList.remove('active');
+    document.getElementById('ledRed').classList.remove('active');
 
-        const valueSpan = document.createElement('span');
-        valueSpan.textContent = value;
+    const statusBadge = document.querySelector('.status-badge');
+    statusBadge.className = 'status-badge normal';
+    statusBadge.textContent = 'NORMAL';
 
-        barContainer.appendChild(labelSpan);
-        barContainer.appendChild(bar);
-        barContainer.appendChild(valueSpan);
+    document.getElementById('carAnimation').classList.remove('paused');
+}
 
-        container.appendChild(barContainer);
+// Show alert banner
+function showAlertBanner(alert) {
+    const banner = document.getElementById('alertBanner');
+    const message = document.getElementById('alertMessage');
+
+    message.textContent = `⚠️ HIGH SEVERITY: ${alert.fault_type}`;
+    banner.style.display = 'flex';
+}
+
+// Dismiss alert banner
+function dismissAlert() {
+    document.getElementById('alertBanner').style.display = 'none';
+
+    // Stop high alert sound
+    if (currentHighAlert) {
+        try {
+            currentHighAlert.stop();
+        } catch (e) { }
+        currentHighAlert = null;
+    }
+}
+
+// Add alert to history
+function addToAlertHistory(alert) {
+    const alertList = document.getElementById('alertList');
+    const alertItem = document.createElement('div');
+    alertItem.className = `alert-item ${alert.severity.toLowerCase()}`;
+
+    const time = new Date().toLocaleTimeString();
+
+    alertItem.innerHTML = `
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <strong>${alert.fault_type}</strong>
+            <span>${alert.severity}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #666;">
+            <span>Vehicle: ${alert.vehicle_id}</span>
+            <span>${time}</span>
+        </div>
+        <div style="font-size: 12px; color: #666; margin-top: 5px;">
+            Confidence: ${(alert.confidence * 100).toFixed(0)}%
+        </div>
+    `;
+
+    alertList.insertBefore(alertItem, alertList.firstChild);
+
+    // Limit history to 50 items
+    if (alertList.children.length > 50) {
+        alertList.removeChild(alertList.lastChild);
+    }
+}
+
+// Filter alerts
+function filterAlerts() {
+    const filter = document.getElementById('alertFilter').value;
+    const alerts = document.querySelectorAll('.alert-item');
+
+    alerts.forEach(alert => {
+        if (filter === 'all') {
+            alert.style.display = 'block';
+        } else {
+            if (alert.classList.contains(filter.toLowerCase())) {
+                alert.style.display = 'block';
+            } else {
+                alert.style.display = 'none';
+            }
+        }
     });
 }
 
-// Utility functions
-function updateValue(inputId, value) {
-    document.getElementById(inputId).value = value;
+// Clear all alerts
+function clearAlerts() {
+    document.getElementById('alertList').innerHTML = '';
 }
 
-function updateRange(rangeId, value) {
-    document.getElementById(rangeId).value = value;
+// Trigger specific fault
+function triggerFault(faultType) {
+    const faultValues = {
+        'overheat': { temp: 118, speed: 80, rpm: 3200, battery: 12.3, fuel: 60 },
+        'overspeed': { speed: 155, temp: 95, rpm: 4500, battery: 12.4, fuel: 50 },
+        'battery': { battery: 9.8, speed: 45, temp: 82, rpm: 1800, fuel: 40 },
+        'rpm': { rpm: 7200, speed: 110, temp: 105, battery: 12.1, fuel: 30 },
+        'fuel': { fuel: 5, speed: 70, temp: 88, rpm: 2500, battery: 12.5 }
+    };
+
+    const values = faultValues[faultType];
+
+    // Update sliders
+    document.getElementById('speed').value = values.speed || 85;
+    document.getElementById('engineTemp').value = values.temp || 92;
+    document.getElementById('rpm').value = values.rpm || 2800;
+    document.getElementById('battery').value = values.battery || 12.4;
+    document.getElementById('fuel').value = values.fuel || 45;
+
+    updateLiveParams();
+    sendTelemetry();
 }
 
+// Reset to normal values
+function resetToNormal() {
+    document.getElementById('speed').value = 65;
+    document.getElementById('engineTemp').value = 85;
+    document.getElementById('rpm').value = 2500;
+    document.getElementById('battery').value = 12.6;
+    document.getElementById('fuel').value = 75;
+
+    updateLiveParams();
+    sendTelemetry();
+}
+
+// Start auto simulator
+function startAutoSimulator() {
+    if (autoSimulatorInterval) return;
+
+    const prob = parseFloat(document.getElementById('simProb').value);
+
+    autoSimulatorInterval = setInterval(() => {
+        if (Math.random() < prob) {
+            const faults = ['overheat', 'overspeed', 'battery', 'rpm', 'fuel'];
+            const randomFault = faults[Math.floor(Math.random() * faults.length)];
+            triggerFault(randomFault);
+        } else {
+            resetToNormal();
+        }
+    }, 3000);
+}
+
+// Stop auto simulator
+function stopAutoSimulator() {
+    if (autoSimulatorInterval) {
+        clearInterval(autoSimulatorInterval);
+        autoSimulatorInterval = null;
+    }
+}
+
+// Load vehicle data
+async function loadVehicleData() {
+    const vehicleId = document.getElementById('vehicleSelect').value;
+
+    try {
+        const response = await fetch(`${API_URL}/vehicle/${vehicleId}/recent?limit=1`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.data && data.data.length > 0) {
+                const latest = data.data[0];
+                updateFromLatest(latest);
+            }
+        }
+    } catch (error) {
+        console.log('No recent data');
+    }
+}
+
+// Update from latest data
+function updateFromLatest(data) {
+    document.getElementById('liveSpeed').textContent = data.speed + ' km/h';
+    document.getElementById('liveTemp').textContent = data.engine_temp + '°C';
+    document.getElementById('liveRPM').textContent = data.rpm;
+    document.getElementById('liveBattery').textContent = data.battery_voltage + 'V';
+    document.getElementById('liveFuel').textContent = data.fuel_level + '%';
+}
+
+// Tab switching
 function showTab(tabName) {
-    // Update tab buttons
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     event.target.classList.add('active');
 
-    // Update tab content
     document.querySelectorAll('.tab-pane').forEach(tab => {
         tab.classList.remove('active');
     });
-    document.getElementById(`${tabName}-tab`).classList.add('active');
+    document.getElementById(tabName + '-tab').classList.add('active');
 }
 
-function showToast(message, type = 'info') {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.className = `toast show ${type}`;
-
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
-}
-
-function startAutoRefresh() {
-    if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-    }
-
-    autoRefreshInterval = setInterval(() => {
-        if (document.querySelector('#live-tab.active')) {
-            loadRecentTelemetry();
-        }
-        if (document.querySelector('#alerts-tab.active')) {
-            loadAlerts();
-        }
-        loadDashboardStats();
-    }, 5000);
-}
-
-// Refresh button handler
-document.getElementById('refreshBtn').addEventListener('click', () => {
-    loadRecentTelemetry();
-    loadAlerts();
-    loadDashboardStats();
-    showToast('Data refreshed', 'success');
+// Vehicle change handler
+document.getElementById('vehicleSelect').addEventListener('change', (e) => {
+    currentVehicle = e.target.value;
+    loadVehicleData();
 });
