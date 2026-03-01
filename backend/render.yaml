@@ -1,5 +1,6 @@
 services:
-  # Backend API
+services:
+  # Backend API Service
   - type: web
     name: vehicle-telemetry-api
     runtime: python
@@ -7,8 +8,10 @@ services:
     branch: main
     buildCommand: |
       cd backend
-      pip install -r requirements.txt
-    startCommand: cd backend && uvicorn app:app --host 0.0.0.0 --port $PORT
+      pip install -r backend/requirements.txt
+    startCommand: |
+      cd backend
+      uvicorn app:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
