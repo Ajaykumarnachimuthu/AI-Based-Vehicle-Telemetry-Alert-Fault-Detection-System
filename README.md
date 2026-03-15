@@ -1,4 +1,4 @@
-<p align="center"> <img src="https://via.placeholder.com/800x400/1e3c72/ffffff?text=Vehicle+Telemetry+Dashboard" alt="Dashboard Preview" width="800"/> <br> 
+<p align="center"> <img src="images/dashboard.png" alt="Dashboard Preview" width="800"/> <br> 
 <em>Real-time vehicle monitoring with AI-powered fault detection</em> </p>
 <p align="center"> <a href="https://render.com/deploy?repo=https://github.com/Ajaykumarnachimuthu/AI-Based-Vehicle-Telemetry-Alert-Fault-Detection-System">
 <img src="https://img.shields.io/badge/Deploy%20to-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white" alt="Deploy to Render"> </a>
