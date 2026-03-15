@@ -1,0 +1,8 @@
+<p align="center"> <img src="https://via.placeholder.com/800x400/1e3c72/ffffff?text=Vehicle+Telemetry+Dashboard" alt="Dashboard Preview" width="800"/> <br> 
+<em>Real-time vehicle monitoring with AI-powered fault detection</em> </p>
+<p align="center"> <a href="https://render.com/deploy?repo=https://github.com/Ajaykumarnachimuthu/AI-Based-Vehicle-Telemetry-Alert-Fault-Detection-System">
+<img src="https://img.shields.io/badge/Deploy%20to-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white" alt="Deploy to Render"> </a>
+ <a href="https://github.com/Ajaykumarnachimuthu/AI-Based-Vehicle-Telemetry-Alert-Fault-Detection-System/stargazers"> 
+<img src="https://img.shields.io/github/stars/Ajaykumarnachimuthu/AI-Based-Vehicle-Telemetry-Alert-Fault-Detection-System?style=for-the-badge&logo=github" alt="GitHub stars"> </a>
+ <a href="https://github.com/Ajaykumarnachimuthu/AI-Based-Vehicle-Telemetry-Alert-Fault-Detection-System/blob/main/LICENSE"> <img src="https://img.shields.io/github/license/Ajaykumarnachimuthu/AI-Based-Vehicle-Telemetry-Alert-Fault-Detection-System?style=for-the-badge" alt="License"> </a> </p>
+<p align="center"> <img src="https://img.shields.io/badge/Python-3.11-blue?style=flat-square&logo=python" alt="Python"> <img src="https://img.shields.io/badge/FastAPI-0.104-green?style=flat-square&logo=fastapi" alt="FastAPI"> <img src="https://img.shields.io/badge/scikit--learn-1.3-orange?style=flat-square&logo=scikit-learn" alt="scikit-learn"> <img src="https://img.shields.io/badge/JavaScript-ES6-yellow?style=flat-square&logo=javascript" alt="JavaScript"> <img src="https://img.shields.io/badge/Docker-✓-blue?style=flat-square&logo=docker" alt="Docker"> </p>
