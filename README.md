@@ -13,30 +13,30 @@
 AI-Based Vehicle Telemetry & Fault Detection System is a real-time monitoring solution that collects vehicle operational data (speed, temperature, RPM, battery voltage, fuel level) and uses a hybrid approach of rule-based thresholds and machine learning anomaly detection to identify potential faults before they cause breakdowns.
 
 The system features an interactive web dashboard with 3D car animation, live gauges, color-coded alerts, and sound notifications - making it perfect for fleet management, preventive maintenance, and educational purposes.
+<br>
+**FEATURES**
+<br>
+**Intelligent Detection**<br>
 
-FEATURES
+⚡ Rule-Based Detection-Threshold alerts for known issues<br>
+🤖 ML Anomaly Detection-Isolation Forest finds unknown patterns<br>
+🎯 Severity Classification-High/Medium/Low with confidence scores<br>
+🔔 Sound Alerts	Different-sounds per severity level<br>
 
-Intelligent Detection
+**User Interface**<br>
 
-⚡ Rule-Based Detection-Threshold alerts for known issues
-🤖 ML Anomaly Detection-Isolation Forest finds unknown patterns
-🎯 Severity Classification-High/Medium/Low with confidence scores
-🔔 Sound Alerts	Different-sounds per severity level
-
-User Interface
-
-📱 Responsive Design	Works on desktop, tablet, mobile
-🎨 Modern UI	Clean, professional interface
-📋 Alert History	Filterable log with timestamps
-🎛️ Manual Controls	Sliders to test different scenarios
+📱 Responsive Design	Works on desktop, tablet, mobile<br>
+🎨 Modern UI	Clean, professional interface<br>
+📋 Alert History	Filterable log with timestamps<br>
+🎛️ Manual Controls	Sliders to test different scenarios<br>
 <br>
 
 🌐 Live Demo
 <p align="center"> <a href="https://vehicle-telemetry-dashboard.onrender.com"> <img src="https://img.shields.io/badge/View%20Dashboard-2563eb?style=for-the-badge&logo=google-chrome&logoColor=white" alt="View Dashboard"> </a> <a href="https://vehicle-telemetry-api.onrender.com/docs"> <img src="https://img.shields.io/badge/API%20Docs-10b981?style=for-the-badge&logo=swagger&logoColor=white" alt="API Docs"> </a> <a href="https://vehicle-telemetry-api.onrender.com"> <img src="https://img.shields.io/badge/Backend%20API-64748b?style=for-the-badge&logo=fastapi&logoColor=white" alt="Backend API"> </a> </p>
 Component	URL	Status
-Frontend Dashboard	https://ai-based-vehicle-telemetry-alert-fault.onrender.com	✅ Live
-Backend API	https://vehicle-telemetry-api.onrender.com                          ✅ Live
-API Documentation	https://vehicle-telemetry-api.onrender.com/docs	            ✅ Live
+Frontend Dashboard	https://ai-based-vehicle-telemetry-alert-fault.onrender.com	 ✅ Live<br>
+Backend API	https://vehicle-telemetry-api.onrender.com                          ✅ Live<br>
+API Documentation	https://vehicle-telemetry-api.onrender.com/docs	              ✅ Live<br>
 <br>
 🏗️ System Architecture
 <p align="center"> <img src="images/arch.png" alt="Architecture" width="100%"/> </p>
@@ -44,26 +44,26 @@ API Documentation	https://vehicle-telemetry-api.onrender.com/docs	            �
 
 
 
-AI-Based-Vehicle-Telemetry-Alert-Fault-Detection-System/
-├── 📂 backend/
-│   ├── 📄 app.py                 # FastAPI main application
-│   ├── 📄 vehicle_simulator.py   # Data generator
-│   ├── 📄 requirements.txt       # Python dependencies
-│   ├── 📄 Dockerfile              # Container configuration
-│   └── 📂 models/                 # ML model storage
-│       └── 📄 anomaly_model.pkl   # Trained Isolation Forest
+AI-Based-Vehicle-Telemetry-Alert-Fault-Detection-System/<br>
+├── 📂 backend/<br>
+│   ├── 📄 app.py                 # FastAPI main application<br>
+│   ├── 📄 vehicle_simulator.py   # Data generator<br>
+│   ├── 📄 requirements.txt       # Python dependencies<br>
+│   ├── 📄 Dockerfile              # Container configuration<br>
+│   └── 📂 models/                 # ML model storage<br>
+│       └── 📄 anomaly_model.pkl   # Trained Isolation Forest<br>
 ├── 📂 frontend/
-│   ├── 📄 index.html                   # Main dashboard
-│   ├── 📄 styles.css               # Styling
-│   └── 📄 script.js                # Frontend logic
-├── 📄 render.yaml                  # Render deployment config
-├── 📄 docker-compose.yml           # Docker Compose config
-├── 📄 run_all.py                   # Local launcher script
-├── 📄 .gitignore                   # Git ignore file
-└── 📄 README.md                    # This file
+│   ├── 📄 index.html                   # Main dashboard<br>
+│   ├── 📄 styles.css               # Styling<br>
+│   └── 📄 script.js                # Frontend logic<br>
+├── 📄 render.yaml                  # Render deployment config<br>
+├── 📄 docker-compose.yml           # Docker Compose config<br>
+├── 📄 run_all.py                   # Local launcher script<br>
+├── 📄 .gitignore                   # Git ignore file<br>
+└── 📄 README.md                    # This file<br>
 
 
-Project Link: https://github.com/Ajaykumarnachimuthu/AI-Based-Vehicle-Telemetry-Alert-Fault-Detection-System
+**Project Link:** https://github.com/Ajaykumarnachimuthu/AI-Based-Vehicle-Telemetry-Alert-Fault-Detection-System
 
 ⭐ Support
 <p align="center"> If you like this project, please give it a ⭐ on GitHub! </p><p align="center"> <a href="https://github.com/Ajaykumarnachimuthu/AI-Based-Vehicle-Telemetry-Alert-Fault-Detection-System/stargazers"> <img src="https://img.shields.io/github/stars/Ajaykumarnachimuthu/AI-Based-Vehicle-Telemetry-Alert-Fault-Detection-System?style=social" alt="GitHub stars"> </a> </p>
